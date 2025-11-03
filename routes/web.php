@@ -2,6 +2,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Controllers\ProfesorController;
+use App\Http\Controllers\PeriodoController;
 
 // Rutas públicas
 Route::get('/', function () {
@@ -58,6 +59,23 @@ Route::middleware(['auth:coordinador'])->group(function () {
             ->name('coordinador.profesores.update');
         Route::delete('/{id}', [ProfesorController::class, 'destroy'])
             ->name('coordinador.profesores.destroy');
+    });
+
+
+    // Gestión de Periodos
+    Route::prefix('coordinador/periodos')->group(function () {
+        Route::get('/', [PeriodoController::class, 'index'])
+            ->name('coordinador.periodos.index');
+        Route::get('/crear', [PeriodoController::class, 'create'])
+            ->name('coordinador.periodos.create');
+        Route::post('/', [PeriodoController::class, 'store'])
+            ->name('coordinador.periodos.store');
+        Route::get('/{id}/editar', [PeriodoController::class, 'edit'])
+            ->name('coordinador.periodos.edit');
+        Route::put('/{id}', [PeriodoController::class, 'update'])
+            ->name('coordinador.periodos.update');
+        Route::delete('/{id}', [PeriodoController::class, 'destroy'])
+            ->name('coordinador.periodos.destroy');
     });
 });
 

@@ -1,4 +1,1 @@
 # Glotty_Sistema
-
-
-

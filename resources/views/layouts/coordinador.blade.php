@@ -13,19 +13,19 @@
                 extend: {
                     colors: {
                         primary: {
-                            light: '#7dd3fc',
-                            DEFAULT: '#0ea5e9',
-                            dark: '#0369a1'
+                            light: '#dbeafe',
+                            DEFAULT: '#60a5fa',
+                            dark: '#3b82f6'
                         },
                         secondary: {
-                            light: '#86efac',
-                            DEFAULT: '#10b981',
-                            dark: '#047857'
+                            light: '#d1fae5',
+                            DEFAULT: '#6ee7b7',
+                            dark: '#34d399'
                         },
                         accent: {
-                            light: '#a5f3fc',
-                            DEFAULT: '#06b6d4',
-                            dark: '#0e7490'
+                            light: '#e0f2fe',
+                            DEFAULT: '#7dd3fc',
+                            dark: '#38bdf8'
                         },
                         neutral: {
                             light: '#f8fafc',
@@ -33,7 +33,7 @@
                             dark: '#e2e8f0'
                         },
                         text: {
-                            primary: '#1e293b',
+                            primary: '#334155',
                             secondary: '#64748b'
                         }
                     },
@@ -61,33 +61,34 @@
     </style>
     @stack('styles')
 </head>
-<body class="bg-neutral-light min-h-screen flex flex-col font-sans antialiased text-text-primary">
+<body class="bg-gray-50 min-h-screen flex flex-col font-sans antialiased text-text-primary">
+
     
     <!-- Main Content sin sidebar -->
     <div class="flex-1 flex flex-col overflow-hidden">
-        <!-- Top Header mejorado -->
-        <header class="bg-gradient-to-r from-blue-600 to-blue-800 shadow-sm h-20 flex items-center px-8">
+        <!-- Top Header con colores suaves -->
+        <header class="bg-gradient-to-r from-slate-600 to-slate-700 shadow-sm h-20 flex items-center px-8 text-white">
             <div class="flex items-center space-x-4">
-                <div class="bg-white/20 p-3 rounded-xl">
+                <div class="bg-white/10 p-3 rounded-xl backdrop-blur-sm">
                     <i class="fas fa-user-tie text-white text-2xl"></i>
                 </div>
                 <div>
                     <h1 class="text-white font-bold text-2xl">@yield('header-title', 'Panel del Coordinador')</h1>
-                    <p class="text-blue-100 text-sm">Sistema Académico Glotty</p>
+                    <p class="text-slate-200 text-sm">Sistema Académico Glotty</p>
                 </div>
             </div>
             <div class="ml-auto flex items-center space-x-6">
                 <div class="text-right">
                     <p class="text-white font-semibold">{{ session('user_fullname') ?? 'Coordinador' }}</p>
-                    <p class="text-blue-100 text-sm">RFC: {{ session('user_identifier') ?? 'N/A' }}</p>
+                    <p class="text-slate-200 text-sm">RFC: {{ session('user_identifier') ?? 'N/A' }}</p>
                 </div>
-                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center border-2 border-white/30">
+                <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border-2 border-white/20 backdrop-blur-sm">
                     <i class="fas fa-user text-white text-lg"></i>
                 </div>
                 <!-- Logout Form -->
                 <form action="{{ route('logout') }}" method="POST" class="flex items-center">
                     @csrf
-                    <button type="submit" class="text-white/80 hover:text-white transition-smooth flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg">
+                    <button type="submit" class="text-white/90 hover:text-white transition-smooth flex items-center space-x-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm">
                         <i class="fas fa-sign-out-alt"></i>
                         <span>Salir</span>
                     </button>
@@ -100,21 +101,21 @@
             
             <!-- Mensajes de éxito/error -->
             @if(session('success'))
-                <div class="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6">
                     <div class="flex items-center">
-                        <i class="fas fa-check-circle text-green-600 text-xl mr-3"></i>
-                        <span class="text-green-800 font-medium">{{ session('success') }}</span>
+                        <i class="fas fa-check-circle text-emerald-600 text-xl mr-3"></i>
+                        <span class="text-emerald-800 font-medium">{{ session('success') }}</span>
                     </div>
                 </div>
             @endif
 
             @if($errors->any())
-                <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 mb-6">
                     <div class="flex items-center">
-                        <i class="fas fa-exclamation-triangle text-red-600 text-xl mr-3"></i>
+                        <i class="fas fa-exclamation-triangle text-rose-600 text-xl mr-3"></i>
                         <div>
-                            <h4 class="text-red-800 font-semibold">Errores encontrados:</h4>
-                            <ul class="text-red-700 text-sm mt-1">
+                            <h4 class="text-rose-800 font-semibold">Errores encontrados:</h4>
+                            <ul class="text-rose-700 text-sm mt-1">
                                 @foreach($errors->all() as $error)
                                     <li>{{ $error }}</li>
                                 @endforeach
@@ -129,16 +130,16 @@
         </main>
     </div>
     
-    <!-- Footer mejorado -->
-    <footer class="bg-gray-800 text-white py-4 px-8">
+    <!-- Footer con colores más suaves -->
+    <footer class="bg-slate-700 text-white py-4 px-8">
         <div class="flex flex-col md:flex-row justify-between items-center">
             <div class="flex items-center space-x-2 mb-4 md:mb-0">
-                <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <i class="fas fa-graduation-cap text-blue-300"></i>
+                <div class="w-8 h-8 rounded-full bg-slate-600 flex items-center justify-center">
+                    <i class="fas fa-graduation-cap text-slate-200"></i>
                 </div>
                 <span class="font-medium">Sistema Académico Glotty</span>
             </div>
-            <div class="text-sm text-gray-400">
+            <div class="text-sm text-slate-300">
                 &copy; {{ date('Y') }} Sistema Glotty. Todos los derechos reservados.
             </div>
         </div>
