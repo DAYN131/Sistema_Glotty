@@ -3,7 +3,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Middleware\RedirectIfAuthenticated;
 use App\Http\Controllers\ProfesorController;
 use App\Http\Controllers\PeriodoController;
-
+use App\Http\Controllers\AulaController;
+use App\Http\Controllers\HorarioController;
 // Rutas públicas
 Route::get('/', function () {
    return view('login');
@@ -33,7 +34,7 @@ Route::middleware(['auth:web'])->group(function () {
 Route::middleware(['auth:profesor'])->group(function () {
     Route::get('/profesor', function () {
         $profesor = Auth::guard('profesor')->user();
-        
+
         return view('profesor', [
             'nombre_completo' => $profesor->nombre_profesor . ' ' . $profesor->apellidos_profesor,
             'rfc_profesor' => $profesor->rfc_profesor
@@ -76,6 +77,46 @@ Route::middleware(['auth:coordinador'])->group(function () {
             ->name('coordinador.periodos.update');
         Route::delete('/{id}', [PeriodoController::class, 'destroy'])
             ->name('coordinador.periodos.destroy');
+    });
+
+    // Gestión de Aulas
+    Route::prefix('coordinador/aulas')->group(function () {
+        Route::get('/', [AulaController::class, 'index'])
+            ->name('coordinador.aulas.index');
+        Route::get('/crear', [AulaController::class, 'create'])
+            ->name('coordinador.aulas.create');
+        Route::post('/', [AulaController::class, 'store'])
+            ->name('coordinador.aulas.store');
+        Route::get('/{id}/editar', [AulaController::class, 'edit'])
+            ->name('coordinador.aulas.edit');
+        Route::put('/{id}', [AulaController::class, 'update'])
+            ->name('coordinador.aulas.update');
+        Route::delete('/{id}', [AulaController::class, 'destroy'])
+            ->name('coordinador.aulas.destroy');
+    });
+    // Gestión de Horarios
+    Route::prefix('coordinador/horarios')->group(function () {
+        // Rutas estándar del CRUD
+        Route::get('/', [HorarioController::class, 'index'])
+            ->name('coordinador.horarios.index');
+        Route::get('/crear', [HorarioController::class, 'create'])
+            ->name('coordinador.horarios.create');
+        Route::post('/', [HorarioController::class, 'store'])
+            ->name('coordinador.horarios.store');
+        Route::get('/{id}/editar', [HorarioController::class, 'edit'])
+            ->name('coordinador.horarios.edit');
+        Route::put('/{id}', [HorarioController::class, 'update'])
+            ->name('coordinador.horarios.update');
+        Route::delete('/{id}', [HorarioController::class, 'destroy'])
+            ->name('coordinador.horarios.destroy');
+
+        // Rutas para Soft Deletes (Papelera)
+        Route::get('/eliminados', [HorarioController::class, 'eliminados'])
+            ->name('coordinador.horarios.eliminados');
+        Route::put('/{id}/restore', [HorarioController::class, 'restore'])
+            ->name('coordinador.horarios.restore');
+        Route::delete('/{id}/force-delete', [HorarioController::class, 'forceDelete'])
+            ->name('coordinador.horarios.forceDelete');
     });
 });
 

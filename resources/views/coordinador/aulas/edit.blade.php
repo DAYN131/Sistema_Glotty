@@ -1,205 +1,111 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>*
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrar Aula - Glotty</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        sidebar: '#2c3e50',
-                        primary: {
-                            light: '#3498db',
-                            DEFAULT: '#2980b9',
-                            dark: '#1f6ca6'
-                        },
-                        secondary: {
-                            light: '#f8fafc',
-                            DEFAULT: '#f1f5f9',
-                            dark: '#e2e8f0'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="bg-gray-100 min-h-screen flex flex-col">
+@extends('layouts.coordinador')
 
+@section('title', 'Editar Aula')
+@section('header-title', 'Editar Aula')
 
-    <div class="flex flex-1">
-        <!-- Sidebar -->
-        <div class="w-16 bg-sidebar text-white min-h-screen flex flex-col items-center py-6 space-y-8">
-            <div class="rounded-full bg-blue-400 w-10 h-10 flex items-center justify-center">
-                <i class="fas fa-user-tie text-white"></i>
-            </div>
-            <div class="flex flex-col items-center space-y-8">
-                <a href="#" class="text-white hover:text-blue-300 transition-colors">
-                    <i class="fas fa-home text-xl"></i>
-                </a>
-                <a href="#" class="text-white hover:text-blue-300 transition-colors">
-                    <i class="fas fa-user-graduate text-xl"></i>
-                </a>
-                <a href="#" class="text-white hover:text-blue-300 transition-colors">
-                    <i class="fas fa-chalkboard-teacher text-xl"></i>
-                </a>
-                <a href="#" class="text-white hover:text-blue-300 transition-colors">
-                    <i class="fas fa-calendar-alt text-xl"></i>
-                </a>
-            </div>
-            <div class="mt-auto">
-                <a href="#" class="text-white hover:text-blue-300 transition-colors">
-                    <i class="fas fa-sign-out-alt text-xl"></i>
-                </a>
-            </div>
+@section('content')
+    <div class="bg-white rounded-2xl shadow-card p-6 max-w-2xl mx-auto">
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">Editar Aula</h2>
+            <p class="text-gray-600">Modifique la información del aula</p>
         </div>
-        
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col">
-            <!-- Top Header -->
-            <header class="bg-white shadow-sm h-16 flex items-center px-6 border-b">
-                <div class="flex items-center space-x-2">
-                    <i class="fas fa-bars text-gray-500"></i>
-                    <a href="#" class="text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-home text-sm"></i>
-                        <span class="ml-1">Inicio</span>
-                    </a>
-                    <span class="text-gray-400 mx-2">/</span>
-                    <a href="#" class="text-gray-600 hover:text-gray-800">
-                        <span>Gestión de Grupos</span>
-                    </a>
-                    <span class="text-gray-400 mx-2">/</span>
-                    <a href="#" class="text-gray-600 hover:text-gray-800">
-                        <span>Listado de Aulas</span>
-                    </a>
-                    <span class="text-gray-400 mx-2">/</span>
-                    <span class="text-gray-600">Editar Aula</span>
+
+        <form action="{{ route('coordinador.aulas.update', $aula->id_aula) }}" method="POST">
+            @csrf
+            @method('PUT')
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div class="col-span-2">
+                    <label for="id_aula" class="block text-sm font-medium text-gray-700 mb-2">
+                        Identificador del Aula (No editable)
+                    </label>
+                    <input type="text" name="id_aula" id="id_aula" readonly
+                           value="{{ $aula->id_aula }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed">
                 </div>
-                <div class="ml-auto flex items-center">
-                    <span class="text-gray-700 font-medium">COORDINADOR ACADÉMICO</span>
+
+                <div>
+                    <label for="edificio" class="block text-sm font-medium text-gray-700 mb-2">
+                        Edificio <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="edificio" id="edificio" required
+                           value="{{ old('edificio', $aula->edificio) }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth"
+                           placeholder="Ej: A, B, Laboratorios">
+                    @error('edificio')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
-            </header>
-            
-            <!-- Content Area -->
-            <div class="flex-1 p-6 overflow-auto">
-                <!-- Form Card -->
-                <div class="max-w-md mx-auto bg-white rounded-lg shadow-sm">
-                    <!-- Header -->
-                    <div class="p-6 border-b">
-                        <h2 class="text-2xl font-bold text-gray-800 text-center">Registrar Aula</h2>
+
+                <div>
+                    <label for="numero_aula" class="block text-sm font-medium text-gray-700 mb-2">
+                        Número de Aula <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" name="numero_aula" id="numero_aula" required
+                           value="{{ old('numero_aula', $aula->numero_aula) }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth"
+                           placeholder="Ej: 101, 02">
+                    @error('numero_aula')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="capacidad" class="block text-sm font-medium text-gray-700 mb-2">
+                        Capacidad <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" name="capacidad" id="capacidad" required
+                           value="{{ old('capacidad', $aula->capacidad) }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth"
+                           placeholder="Ej: 30">
+                    @error('capacidad')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="tipo_aula" class="block text-sm font-medium text-gray-700 mb-2">
+                        Tipo de Aula <span class="text-red-500">*</span>
+                    </label>
+                    <select name="tipo_aula" id="tipo_aula" required
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
+                        <option value="regular" {{ old('tipo_aula', $aula->tipo_aula) == 'regular' ? 'selected' : '' }}>Regular</option>
+                        <option value="laboratorio" {{ old('tipo_aula', $aula->tipo_aula) == 'laboratorio' ? 'selected' : '' }}>Laboratorio</option>
+                        <option value="auditorio" {{ old('tipo_aula', $aula->tipo_aula) == 'auditorio' ? 'selected' : '' }}>Auditorio</option>
+                        <option value="sala_juntas" {{ old('tipo_aula', $aula->tipo_aula) == 'sala_juntas' ? 'selected' : '' }}>Sala de Juntas</option>
+                    </select>
+                    @error('tipo_aula')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            <div class="bg-gray-50 rounded-xl p-4 mb-6 mt-8">
+                <h4 class="font-semibold text-gray-800 mb-2">Información del Registro</h4>
+                <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div>
+                        <span class="font-medium">Creado:</span>
+                        {{ $aula->created_at ? $aula->created_at->format('d/m/Y H:i') : 'N/A' }}
                     </div>
-                    
-   
-                    
-                    <!-- Form -->
-
-
-                    <div class="p-6 pt-2">
-                    <form action="{{ route('coordinador.aulas.actualizar', $aula->id_aula) }}" method="POST">
-                    @csrf
-                    @method('PUT')
-               
-                
-                            <!-- Edificio -->
-                            <div class="mb-4">
-                                <label for="edificio" class="block text-sm font-medium text-gray-700 mb-1">Edificio</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-building text-gray-400"></i>
-                                    </div>
-                                    <input type="text" id="edificio" name="edificio" value="{{ old('edificio', $aula->edificio) }}" class="w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 py-2 px-3 border">
-                                    
-                                </div>
-                             
-                                @error('edificio')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
-                          
-                            </div>
-                            
-                            <!-- Número de Aula -->
-                            <div class="mb-4">
-                                <label for="numero_aula" class="block text-sm font-medium text-gray-700 mb-1">Número de Aula</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-door-open text-gray-400"></i>
-                                    </div>
-                                    <input type="number" id="numero_aula" name="numero_aula" required placeholder="Ej: 101, 202"
-                                           class="w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 py-2 px-3 border"
-                                           value="{{ old('edificio', $aula->numero_aula) }}">
-                                </div>
-                              
-                             
-                                @error('numero_aula')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
-                          
-                            </div>
-                            
-                            <!-- Capacidad -->
-                            <div class="mb-4">
-                                <label for="capacidad" class="block text-sm font-medium text-gray-700 mb-1">Capacidad</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-users text-gray-400"></i>
-                                    </div>
-                                    <input type="number" id="capacidad" name="capacidad" required min="1" max="100" placeholder="Ej: 30"
-                                           class="w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 py-2 px-3 border"
-                                           value="{{ old('edificio', $aula->capacidad) }}">
-                                </div>
-                           
-                                @error('capacidad')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
-                            
-                            </div>
-                            
-                            <!-- Tipo de Aula -->
-                            <div class="mb-6">
-                                <label for="tipo_aula" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Aula</label>
-                                <div class="relative">
-                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <i class="fas fa-chalkboard text-gray-400"></i>
-                                    </div>
-                                    <select id="tipo_aula" name="tipo_aula" required
-                                            class="w-full pl-10 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50 py-2 px-3 border">
-                                        <option value="">Seleccione un tipo</option>
-                                        <option value="regular">Regular</option>
-                                        <option value="laboratorio">Laboratorio</option>
-                                        <option value="multimedia">Multimedia</option>
-                                        <option value="conferencia">Sala de Conferencias</option>
-                                    </select>
-                                </div>
-                           
-                                @error('tipo_aula')
-                                <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror
-                          
-                            </div>
-                            
-                            <!-- Botones de acción -->
-                            <div class="flex flex-col sm:flex-row gap-3 sm:justify-between">
-                                <a href="{{ route('coordinador.aulas.index') }}" class="bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md transition-colors text-center">
-                                    <i class="fas fa-arrow-left mr-2"></i> Volver
-                                </a>
-                                <button type="submit" href="" class="bg-primary hover:bg-primary-dark text-white py-2 px-4 rounded-md transition-colors text-center">
-                                    <i class="fas fa-save mr-2"></i> Guardar Cambios
-                                </button>
-                            </div>
-                        </form>
+                    <div>
+                        <span class="font-medium">Actualizado:</span>
+                        {{ $aula->updated_at ? $aula->updated_at->format('d/m/Y H:i') : 'N/A' }}
                     </div>
                 </div>
             </div>
-        </div>
+
+            <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                <a href="{{ route('coordinador.aulas.index') }}"
+                   class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-smooth flex items-center space-x-2">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Cancelar</span>
+                </a>
+                <button type="submit"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-smooth flex items-center space-x-2">
+                    <i class="fas fa-save"></i>
+                    <span>Actualizar Aula</span>
+                </button>
+            </div>
+        </form>
     </div>
-    
-    <!-- Footer con copyright -->
-    <footer class="bg-white text-center py-3 text-gray-600 border-t">
-        &copy; Empresa Datalinker 2025
-    </footer>
-</body>
-</html>
+@endsection
