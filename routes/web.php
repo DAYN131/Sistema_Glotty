@@ -118,6 +118,30 @@ Route::middleware(['auth:coordinador'])->group(function () {
         Route::delete('/{id}/force-delete', [HorarioController::class, 'forceDelete'])
             ->name('coordinador.horarios.forceDelete');
     });
+
+    // Gestión de Grupos
+    Route::prefix('coordinador/grupos')->name('coordinador.grupos.')->group(function () {
+        Route::get('/', [GrupoController::class, 'index'])
+            ->name('index');
+        Route::get('/crear', [GrupoController::class, 'create'])
+            ->name('create');
+        Route::post('/', [GrupoController::class, 'store'])
+            ->name('store');
+        Route::get('/{grupo}/editar', [GrupoController::class, 'edit'])
+            ->name('edit');
+        Route::put('/{grupo}', [GrupoController::class, 'update'])
+            ->name('update');
+        Route::delete('/{grupo}', [GrupoController::class, 'destroy'])
+            ->name('destroy');
+
+        // Rutas para Soft Deletes (Papelera)
+        Route::get('/eliminados', [GrupoController::class, 'eliminados'])
+            ->name('eliminados');
+        Route::put('/{grupo}/restaurar', [GrupoController::class, 'restore'])
+            ->name('restore');
+        Route::delete('/{grupo}/eliminar-permanente', [GrupoController::class, 'forceDelete'])
+            ->name('forceDelete');
+    });
 });
 
 // Logout
