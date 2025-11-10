@@ -80,6 +80,7 @@ Route::middleware(['auth:coordinador'])->group(function () {
     });
 
     // Gestión de Aulas
+
     Route::prefix('coordinador/aulas')->group(function () {
         Route::get('/', [AulaController::class, 'index'])
             ->name('coordinador.aulas.index');
@@ -87,11 +88,11 @@ Route::middleware(['auth:coordinador'])->group(function () {
             ->name('coordinador.aulas.create');
         Route::post('/', [AulaController::class, 'store'])
             ->name('coordinador.aulas.store');
-        Route::get('/{id}/editar', [AulaController::class, 'edit'])
+        Route::get('/{id_aula}/editar', [AulaController::class, 'edit'])
             ->name('coordinador.aulas.edit');
-        Route::put('/{id}', [AulaController::class, 'update'])
+        Route::put('/{id_aula}', [AulaController::class, 'update'])
             ->name('coordinador.aulas.update');
-        Route::delete('/{id}', [AulaController::class, 'destroy'])
+        Route::delete('/{id_aula}', [AulaController::class, 'destroy'])
             ->name('coordinador.aulas.destroy');
     });
 // Gestión de Horarios

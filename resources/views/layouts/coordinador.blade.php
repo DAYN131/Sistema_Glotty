@@ -96,37 +96,10 @@
             </div>
         </header>
         
-        <!-- Content Area -->
+        <!-- Content Area - SIN NOTIFICACIONES -->
         <main class="flex-1 p-8 overflow-auto bg-neutral-light">
-            
-            <!-- Mensajes de éxito/error -->
-            @if(session('success'))
-                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6">
-                    <div class="flex items-center">
-                        <i class="fas fa-check-circle text-emerald-600 text-xl mr-3"></i>
-                        <span class="text-emerald-800 font-medium">{{ session('success') }}</span>
-                    </div>
-                </div>
-            @endif
-
-            @if($errors->any())
-                <div class="bg-rose-50 border border-rose-200 rounded-xl p-4 mb-6">
-                    <div class="flex items-center">
-                        <i class="fas fa-exclamation-triangle text-rose-600 text-xl mr-3"></i>
-                        <div>
-                            <h4 class="text-rose-800 font-semibold">Errores encontrados:</h4>
-                            <ul class="text-rose-700 text-sm mt-1">
-                                @foreach($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
+            <!-- Cada vista manejará sus propias notificaciones -->
             @yield('content')
-            
         </main>
     </div>
     

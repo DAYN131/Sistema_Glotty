@@ -3,102 +3,59 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Grupo extends Model
 {
-    use SoftDeletes;
+    // QUITA SoftDeletes - la tabla no tiene deleted_at
+    // use SoftDeletes;
 
-    protected $primaryKey = 'id';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
+    protected $table = 'grupos';
+    
     protected $fillable = [
-        'id',
-        'nivel_ingles', // 1-5 (nivel del curso)
-        'letra_grupo',  // A, B, C...
-        'anio',
-        'periodo',
-        'id_horario',
-        'id_aula',
-        'rfc_profesor',
-        'cupo_minimo',
-        'cupo_maximo',
-        'rfc_coordinador'
+        'nivel_ingles',
+        'letra_grupo', 
+        'periodo_id',
+        'horario_id',
+        'aula_id',
+        'profesor_id',
+        'capacidad_maxima',
+        'estudiantes_inscritos',
+        'estado'
     ];
-
-    protected $dates = ['deleted_at'];
 
     // Relación con profesor
     public function profesor()
     {
-        return $this->belongsTo(Profesor::class, 'rfc_profesor', 'rfc_profesor');
+        return $this->belongsTo(Profesor::class, 'profesor_id', 'id_profesor');
     }
 
     // Relación con aula
     public function aula()
     {
-        return $this->belongsTo(Aula::class, 'id_aula', 'id_aula');
+        return $this->belongsTo(Aula::class, 'aula_id', 'id_aula');
     }
 
     // Relación con horario
     public function horario()
     {
-        return $this->belongsTo(Horario::class, 'id_horario');
+        return $this->belongsTo(Horario::class, 'horario_id');
     }
 
-    // Relación con inscripciones (HAS MANY)
-    public function inscripciones()
+    // Relación con periodo
+    public function periodo()
     {
-        return $this->hasMany(Inscripcion::class, 'id_grupo', 'id');
+        return $this->belongsTo(Periodo::class, 'periodo_id');
     }
 
-    
-    // Relación con alumnos a través de inscripciones
-    public function alumnos()
+    // Relación con preregistros
+    public function preregistros()
     {
-     
-                   return $this->hasManyThrough(
-                    Alumno::class,
-                    Inscripcion::class,
-                    'id_grupo', // FK en inscripciones
-                    'no_control', // FK en alumnos
-                    'id', // PK en grupos
-                    'no_control' // PK en alumnos
-                );
-    }
-    ///
-    /**
-    * Calcula cupo disponible para vista de alumnos (incluye pendientes)
-    * @return int
-    */
-
-   public function cupoDisponibleParaAlumnos(): int
-   {
-       return max(0, $this->cupo_maximo - $this->inscripciones()->count());
-   }
-
-   /**
-    * Calcula cupo real disponible (solo inscripciones aprobadas)
-    * @return int
-    */
-   public function cupoDisponibleReal(): int
-   {
-       return max(0, $this->cupo_maximo - $this->inscripciones()
-           ->where('estatus_inscripcion', 'Aprobada')
-           ->count());
-   }
-
-   public function getPeriodoFormateadoAttribute()
-    {
-        return "{$this->periodo}-{$this->anio}";
+        return $this->hasMany(Preregistro::class, 'grupo_asignado_id');
     }
 
-    // En el modelo Grupo.php
-    public function tieneAlumnosInscritos(): bool
+    // Método auxiliar para verificar si tiene estudiantes
+    public function tieneEstudiantes(): bool
     {
-        return $this->inscripciones()
-                    ->where('estatus_inscripcion', 'Aprobada')
-                    ->exists();
+        return $this->estudiantes_inscritos > 0 || $this->preregistros()->exists();
     }
 }
