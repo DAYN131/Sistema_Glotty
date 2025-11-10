@@ -44,7 +44,7 @@
                                 class="w-full pl-10 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth appearance-none">
                             <option value="">Seleccione un tipo</option>
                             <option value="semanal" {{ old('tipo') == 'semanal' ? 'selected' : '' }}>Semanal</option>
-                            <option value="sabado" {{ old('tipo') == 'sabado' ? 'selected' : '' }}>Sábado</option>
+                            <option value="sabatino" {{ old('tipo') == 'sabatino' ? 'selected' : '' }}>Sábado</option>
                         </select>
                     </div>
                     @error('tipo')
@@ -52,17 +52,32 @@
                     @enderror
                 </div>
 
-                <div id="dias_container" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Días de clase</label>
+                <!-- Días para horario semanal -->
+                <div id="dias_semanal_container" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Días de clase (Semanal)</label>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
-                        @foreach(['lunes', 'martes', 'miercoles', 'jueves', 'viernes'] as $dia)
+                        @foreach(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'] as $dia)
                             <div class="flex items-center space-x-3">
-                                <input type="checkbox" id="{{ $dia }}" name="dias[]" value="{{ $dia }}"
+                                <input type="checkbox" id="dia_{{ strtolower($dia) }}" name="dias[]" value="{{ $dia }}"
                                        {{ (is_array(old('dias')) && in_array($dia, old('dias'))) ? 'checked' : '' }}
                                        class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                                <label for="{{ $dia }}" class="text-sm font-medium text-gray-700">{{ ucfirst($dia) }}</label>
+                                <label for="dia_{{ strtolower($dia) }}" class="text-sm font-medium text-gray-700">{{ $dia }}</label>
                             </div>
                         @endforeach
+                    </div>
+                    @error('dias')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Día para horario sabatino -->
+                <div id="dias_sabatino_container" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Día de clase (Sabatino)</label>
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="dia_sabado" name="dias[]" value="Sábado"
+                               {{ (is_array(old('dias')) && in_array('Sábado', old('dias'))) ? 'checked' : '' }}
+                               class="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="dia_sabado" class="text-sm font-medium text-gray-700">Sábado</label>
                     </div>
                     @error('dias')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -141,24 +156,29 @@
 
 @push('scripts')
     <script>
-        // Lógica adaptada de horario.js
         document.addEventListener("DOMContentLoaded", function () {
             const tipoSelect = document.getElementById("tipo");
-            const diasContainer = document.getElementById("dias_container");
+            const diasSemanalContainer = document.getElementById("dias_semanal_container");
+            const diasSabatinoContainer = document.getElementById("dias_sabatino_container");
 
-            function toggleDiasContainer() {
+            function toggleDiasContainers() {
+                // Ocultar todos los contenedores primero
+                diasSemanalContainer.classList.add("hidden");
+                diasSabatinoContainer.classList.add("hidden");
+
+                // Mostrar el contenedor correspondiente
                 if (tipoSelect.value === "semanal") {
-                    diasContainer.classList.remove("hidden");
-                } else {
-                    diasContainer.classList.add("hidden");
+                    diasSemanalContainer.classList.remove("hidden");
+                } else if (tipoSelect.value === "sabatino") {
+                    diasSabatinoContainer.classList.remove("hidden");
                 }
             }
 
             // Ejecutar al cargar la página por si hay valores 'old'
-            toggleDiasContainer();
+            toggleDiasContainers();
 
             // Añadir el "oyente" para cuando cambie el select
-            tipoSelect.addEventListener("change", toggleDiasContainer);
+            tipoSelect.addEventListener("change", toggleDiasContainers);
         });
     </script>
 @endpush

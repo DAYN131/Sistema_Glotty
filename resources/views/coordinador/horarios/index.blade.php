@@ -12,7 +12,7 @@
                 </div>
                 <div>
                     <p class="text-gray-600 text-sm">Total Horarios</p>
-                    <p class="text-2xl font-bold text-gray-800">{{ $horarios->count() }}</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ $horarios->total() }}</p>
                 </div>
             </div>
         </div>
@@ -34,7 +34,7 @@
                 </div>
                 <div>
                     <p class="text-gray-600 text-sm">Horarios Sabatinos</p>
-                    <p class="text-2xl font-bold text-gray-800">{{ $horarios->where('tipo', 'sabado')->count() }}</p>
+                    <p class="text-2xl font-bold text-gray-800">{{ $horarios->where('tipo', 'sabatino')->count() }}</p>
                 </div>
             </div>
         </div>
@@ -80,6 +80,12 @@
         @else
             <div class="space-y-4">
                 @foreach($horarios as $horario)
+                    @php
+                        // Decodificar el JSON de días
+                        $diasArray = is_string($horario->dias) ? json_decode($horario->dias, true) : $horario->dias;
+                        $diasArray = $diasArray ?? [];
+                    @endphp
+                    
                     <div class="border border-gray-200 rounded-xl p-5 hover:shadow-card-hover transition-smooth {{ !$horario->activo ? 'bg-gray-50' : '' }}">
                         <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
                             <div class="flex-1">
@@ -87,44 +93,66 @@
                                     <h3 class="font-semibold text-lg text-gray-800">{{ $horario->nombre }}</h3>
                                     @if($horario->activo)
                                         <span class="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
-                                <i class="fas fa-circle text-[6px]"></i>
-                                <span>Activo</span>
-                            </span>
+                                            <i class="fas fa-circle text-[6px]"></i>
+                                            <span>Activo</span>
+                                        </span>
                                     @else
                                         <span class="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full font-medium">
-                                Inactivo
-                            </span>
+                                            Inactivo
+                                        </span>
                                     @endif
                                     <span class="bg-blue-100 text-blue-800 text-xs px-3 py-1 rounded-full font-medium">
-                                {{ ucfirst($horario->tipo) }}
-                            </span>
+                                        {{ ucfirst($horario->tipo) }}
+                                    </span>
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
                                     <div class="flex items-center gap-2">
                                         <i class="fas fa-hourglass-start text-blue-500"></i>
-                                        <span>Inicio: <span class="font-medium">{{ $horario->hora_inicio->format('h:i A') }}</span></span>
+                                        <span>Inicio: <span class="font-medium">
+                                            @if($horario->hora_inicio instanceof \DateTime)
+                                                {{ $horario->hora_inicio->format('h:i A') }}
+                                            @else
+                                                {{ \Carbon\Carbon::parse($horario->hora_inicio)->format('h:i A') }}
+                                            @endif
+                                        </span></span>
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <i class="fas fa-hourglass-end text-green-500"></i>
-                                        <span>Fin: <span class="font-medium">{{ $horario->hora_fin->format('h:i A') }}</span></span>
+                                        <span>Fin: <span class="font-medium">
+                                            @if($horario->hora_fin instanceof \DateTime)
+                                                {{ $horario->hora_fin->format('h:i A') }}
+                                            @else
+                                                {{ \Carbon\Carbon::parse($horario->hora_fin)->format('h:i A') }}
+                                            @endif
+                                        </span></span>
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <i class="fas fa-calendar-alt text-purple-500"></i>
                                         <span>Días: <span class="font-medium">
-                                    @if($horario->tipo == 'sabado')
-                                                    Sábado
-                                                @elseif(!empty($horario->dias))
-                                                    {{ implode(', ', $horario->dias) }}
-                                                @else
-                                                    N/A
-                                                @endif
-                                </span></span>
+                                            @if($horario->tipo == 'sabatino')
+                                                Sábado
+                                            @elseif(!empty($diasArray) && is_array($diasArray))
+                                                {{ implode(', ', $diasArray) }}
+                                            @else
+                                                N/A
+                                            @endif
+                                        </span></span>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="flex items-center gap-3 lg:flex-shrink-0">
+                                <form action="{{ route('coordinador.horarios.toggleActivo', $horario->id) }}" method="POST" class="inline">
+                                    @csrf
+                                    @method('PUT')
+                                    <button type="submit"
+                                            class="bg-{{ $horario->activo ? 'yellow' : 'green' }}-100 hover:bg-{{ $horario->activo ? 'yellow' : 'green' }}-200 text-{{ $horario->activo ? 'yellow' : 'green' }}-700 px-4 py-2 rounded-lg transition-smooth flex items-center gap-2">
+                                        <i class="fas fa-{{ $horario->activo ? 'pause' : 'play' }}"></i>
+                                        <span>{{ $horario->activo ? 'Desactivar' : 'Activar' }}</span>
+                                    </button>
+                                </form>
+
                                 <a href="{{ route('coordinador.horarios.edit', $horario->id) }}"
                                    class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg transition-smooth flex items-center gap-2">
                                     <i class="fas fa-edit"></i>
@@ -145,6 +173,11 @@
                         </div>
                     </div>
                 @endforeach
+
+                <!-- Paginación -->
+                <div class="mt-6">
+                    {{ $horarios->links() }}
+                </div>
             </div>
         @endif
     </div>

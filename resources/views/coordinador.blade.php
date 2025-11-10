@@ -142,7 +142,7 @@
     </a>
     
     <!-- Tarjeta Horarios -->
-    <a href="" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
+    <a href="{{ route('coordinador.horarios.index') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
         <div class="flex items-center mb-5">
             <div class="p-3 bg-violet-100 rounded-lg mr-4 group-hover:bg-violet-200 transition-smooth">
                 <i class="fas fa-calendar-days text-violet-600 text-xl"></i>
@@ -187,7 +187,7 @@
     </a>
      
     <!-- Tarjeta de Aulas -->
-    <a href="" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
+    <a href="{{ route('coordinador.aulas.index') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
         <div class="flex items-center mb-5">
             <div class="p-3 bg-cyan-100 rounded-xl mr-4 group-hover:bg-cyan-200 transition-smooth">
                 <i class="fas fa-door-open text-cyan-600 text-xl"></i>

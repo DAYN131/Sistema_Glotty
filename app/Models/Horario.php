@@ -2,78 +2,122 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Horario extends Model
-
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
-    protected $dates = ['deleted_at'];
+    protected $table = 'horarios';
 
     protected $fillable = [
         'nombre',
-        'tipo', // 'semanal' o 'sabado'
-        'dias', // array de días para tipo semanal
+        'tipo',
+        'dias',
         'hora_inicio',
         'hora_fin',
         'activo',
-        'inicio_vigencia',
-        'fin_vigencia'
     ];
-
-    #protected $casts = [
-        #'dias' => 'array',
-        #'activo' => 'boolean',
-        #'inicio_vigencia' => 'date:Y-m-d',
-        #'fin_vigencia' => 'date:Y-m-d'
-    #];
 
     protected $casts = [
-        'activo' => 'boolean',
-        'dias' => 'array', // Para convertir automáticamente el JSON
+        'dias' => 'array', // Esto automáticamente convierte el JSON a array
         'hora_inicio' => 'datetime:H:i',
         'hora_fin' => 'datetime:H:i',
-        'inicio_vigencia' => 'date',
-        'fin_vigencia' => 'date'
+        'activo' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+        'deleted_at' => 'datetime',
     ];
 
-    // Tipos permitidos (para validación)
-    public static $tiposPermitidos = ['semanal', 'sabado'];
-
-    protected static function boot()
+    /**
+     * Relación con grupos
+     */
+    public function grupos()
     {
-        parent::boot();
-
-        static::saving(function ($model) {
-            // Validar tipo
-            if (!in_array($model->tipo, self::$tiposPermitidos)) {
-                throw new \Exception("Tipo de horario debe ser: " . implode(', ', self::$tiposPermitidos));
-            }
-
-            // Validar días según tipo
-            if ($model->tipo === 'semanal' && empty($model->dias)) {
-                throw new \Exception("Horario semanal requiere días asignados");
-            }
-
-            if ($model->tipo === 'sabado' && !empty($model->dias)) {
-                throw new \Exception("Horario sabatino no debe tener días asignados");
-            }
-        });
+        return $this->hasMany(Grupo::class, 'horario_id');
     }
 
-    // Métodos útiles
-    public function esSabatino()
+    /**
+     * Scope para horarios activos
+     */
+    public function scopeActivos($query)
     {
-        return $this->tipo === 'sabado';
+        return $query->where('activo', true);
     }
 
+    /**
+     * Scope para horarios por tipo
+     */
+    public function scopePorTipo($query, $tipo)
+    {
+        return $query->where('tipo', $tipo);
+    }
+
+    /**
+     * Obtener los días como string legible
+     */
+    public function getDiasLegiblesAttribute()
+    {
+        if (empty($this->dias)) {
+            return '';
+        }
+
+        // Asegurarnos de que tenemos un array
+        $dias = $this->dias;
+        if (is_string($dias)) {
+            $dias = json_decode($dias, true);
+        }
+        
+        return is_array($dias) ? implode(', ', $dias) : '';
+    }
+
+    /**
+     * Obtener el rango de horas legible
+     */
+    public function getHorarioLegibleAttribute()
+    {
+        $horaInicio = $this->hora_inicio instanceof \DateTime 
+            ? $this->hora_inicio->format('H:i') 
+            : $this->hora_inicio;
+            
+        $horaFin = $this->hora_fin instanceof \DateTime 
+            ? $this->hora_fin->format('H:i') 
+            : $this->hora_fin;
+            
+        return $horaInicio . ' - ' . $horaFin;
+    }
+
+    /**
+     * Obtener la descripción completa del horario
+     */
+    public function getDescripcionCompletaAttribute()
+    {
+        return $this->nombre . ' (' . $this->dias_legibles . ' ' . $this->horario_legible . ')';
+    }
+
+    /**
+     * Verificar si el horario está activo
+     */
     public function estaActivo()
     {
-        return $this->activo && now()->between(
-            $this->inicio_vigencia, 
-            $this->fin_vigencia
-        );
+        return $this->activo;
+    }
+
+    /**
+     * Accesor para obtener los días como array
+     */
+    public function getDiasArrayAttribute()
+    {
+        if (empty($this->dias)) {
+            return [];
+        }
+
+        if (is_array($this->dias)) {
+            return $this->dias;
+        }
+
+        return json_decode($this->dias, true) ?? [];
     }
 }
