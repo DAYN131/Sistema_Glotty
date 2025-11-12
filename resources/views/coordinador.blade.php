@@ -82,7 +82,7 @@
 <!-- Main Grid mejorado -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- Tarjeta Preregistros -->
-    <a href="" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
+    <a href="{{ route('coordinador.preregistros.demanda') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
         <div class="flex items-center mb-5">
             <div class="p-3 bg-indigo-100 rounded-lg mr-4 group-hover:bg-indigo-200 transition-smooth">
                 <i class="fas fa-file-signature text-indigo-600 text-xl"></i>

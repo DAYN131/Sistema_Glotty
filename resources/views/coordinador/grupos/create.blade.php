@@ -1,164 +1,136 @@
+{{-- resources/views/coordinador/grupos/create.blade.php --}}
 @extends('layouts.coordinador')
 
-@section('title', 'Crear Grupo')
-@section('header-title', 'Crear Nuevo Grupo Académico')
+@section('title', 'Crear Grupo - Glotty')
+@section('header-title', 'Crear Nuevo Grupo')
 
 @section('content')
-    <div class="bg-white rounded-2xl shadow-card p-6 max-w-3xl mx-auto">
-        <div class="mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">Nuevo Grupo Académico</h2>
-            <p class="text-gray-600">Complete la información del nuevo grupo</p>
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-2xl shadow-card overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+            <h2 class="text-xl font-bold text-white">Crear Grupo - Estado: Planificado</h2>
         </div>
+        
+        <div class="p-6">
+            <form action="{{ route('coordinador.grupos.store') }}" method="POST">
+                @csrf
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Nivel -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nivel de Inglés *</label>
+                        <select name="nivel_ingles" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Selecciona un nivel</option>
+                            @for($i = 1; $i <= 5; $i++)
+                                <option value="{{ $i }}" {{ old('nivel_ingles', $nivelSugerido) == $i ? 'selected' : '' }}>
+                                    Nivel {{ $i }}
+                                </option>
+                            @endfor
+                        </select>
+                        @error('nivel_ingles')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-        <form action="{{ route('coordinador.grupos.store') }}" method="POST">
-            @csrf
+                    <!-- Letra del Grupo -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Letra del Grupo *</label>
+                        <select name="letra_grupo" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Selecciona una letra</option>
+                            <option value="A" {{ old('letra_grupo') == 'A' ? 'selected' : '' }}>A</option>
+                            <option value="B" {{ old('letra_grupo') == 'B' ? 'selected' : '' }}>B</option>
+                            <option value="C" {{ old('letra_grupo') == 'C' ? 'selected' : '' }}>C</option>
+                            <option value="D" {{ old('letra_grupo') == 'D' ? 'selected' : '' }}>D</option>
+                        </select>
+                        @error('letra_grupo')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- Periodo -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Periodo *</label>
+                        <select name="periodo_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Selecciona un periodo</option>
+                            @foreach($periodos as $periodo)
+                                <option value="{{ $periodo->id }}" {{ old('periodo_id') == $periodo->id ? 'selected' : '' }}>
+                                    {{ $periodo->nombre }} ({{ $periodo->fecha_inicio->format('d/m/Y') }} - {{ $periodo->fecha_fin->format('d/m/Y') }})
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('periodo_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                <div>
-                    <label for="periodo_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        Periodo <span class="text-red-500">*</span>
-                    </label>
-                    <select name="periodo_id" id="periodo_id" required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
-                        <option value="">Seleccione un periodo</option>
-                        @foreach($periodos as $periodo)
-                            <option value="{{ $periodo->id }}" {{ old('periodo_id') == $periodo->id ? 'selected' : '' }}>
-                                {{ $periodo->nombre }} - {{ $periodo->anio }} {{ $periodo->activo ? '(Activo)' : '' }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('periodo_id')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
+                    <!-- Horario -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Horario *</label>
+                        <select name="horario_id" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" required>
+                            <option value="">Selecciona un horario</option>
+                            @foreach($horarios as $horario)
+                                @php
+                                    $diasArray = is_string($horario->dias) ? json_decode($horario->dias, true) : $horario->dias;
+                                    $diasArray = $diasArray ?? [];
+                                    $diasTexto = !empty($diasArray) ? implode(', ', $diasArray) : 'Días no especificados';
+                                @endphp
+                                <option value="{{ $horario->id }}" {{ old('horario_id') == $horario->id ? 'selected' : '' }}>
+                                    {{ $horario->nombre }} ({{ $horario->tipo }}) - {{ $diasTexto }} {{ $horario->hora_inicio->format('H:i') }}-{{ $horario->hora_fin->format('H:i') }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('horario_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Capacidad Máxima -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Capacidad Máxima *</label>
+                        <input type="number" name="capacidad_maxima" 
+                               value="{{ old('capacidad_maxima', 25) }}"
+                               min="1" max="50"
+                               class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                               placeholder="Ej: 25" required>
+                        @error('capacidad_maxima')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        <p class="mt-1 text-sm text-gray-500">Número máximo de estudiantes para este grupo</p>
+                    </div>
                 </div>
 
-                <div>
-                    <label for="horario_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        Horario <span class="text-red-500">*</span>
-                    </label>
-                    <select name="horario_id" id="horario_id" required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
-                        <option value="">Seleccione un horario</option>
-                        @foreach($horarios as $horario)
-                            <option value="{{ $horario->id }}" {{ old('horario_id') == $horario->id ? 'selected' : '' }}>
-                                {{ $horario->nombre }} ({{ $horario->tipo }})
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('horario_id')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
+                <!-- Botones -->
+                <div class="flex space-x-4 mt-8 pt-6 border-t border-gray-200">
+                    <button type="submit" 
+                            class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center">
+                        <i class="fas fa-save mr-2"></i>
+                        Crear Grupo
+                    </button>
+                    <a href="{{ route('coordinador.grupos.index') }}" 
+                       class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium transition-colors flex items-center justify-center">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Cancelar
+                    </a>
                 </div>
-
-                <div>
-                    <label for="nivel_ingles" class="block text-sm font-medium text-gray-700 mb-2">
-                        Nivel de Inglés <span class="text-red-500">*</span>
-                    </label>
-                    <select name="nivel_ingles" id="nivel_ingles" required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
-                        <option value="">Seleccione un nivel</option>
-                        @for($i = 1; $i <= 10; $i++)
-                            <option value="{{ $i }}" {{ old('nivel_ingles') == $i ? 'selected' : '' }}>Nivel {{ $i }}</option>
-                        @endfor
-                    </select>
-                    @error('nivel_ingles')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="letra_grupo" class="block text-sm font-medium text-gray-700 mb-2">
-                        Letra del Grupo <span class="text-red-500">*</span> (Ej: A, B, C)
-                    </label>
-                    <input type="text" name="letra_grupo" id="letra_grupo" required maxlength="1"
-                           value="{{ old('letra_grupo') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth uppercase"
-                           onkeyup="this.value = this.value.toUpperCase();">
-                    @error('letra_grupo')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="profesor_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        Profesor (Opcional)
-                    </label>
-                    <select name="profesor_id" id="profesor_id"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
-                        <option value="">Sin asignar</option>
-                        @foreach($profesores as $profesor)
-                            <option value="{{ $profesor->id_profesor }}" {{ old('profesor_id') == $profesor->id_profesor ? 'selected' : '' }}>
-                                {{ $profesor->nombre_profesor }} {{ $profesor->apellidos_profesor }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('profesor_id')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="aula_id" class="block text-sm font-medium text-gray-700 mb-2">
-                        Aula (Opcional)
-                    </label>
-                    <select name="aula_id" id="aula_id"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
-                        <option value="">Sin asignar</option>
-                        @foreach($aulas as $aula)
-                            <option value="{{ $aula->id_aula }}" {{ old('aula_id') == $aula->id_aula ? 'selected' : '' }}>
-                                {{ $aula->id_aula }} (Edif: {{ $aula->edificio }}, Cap: {{ $aula->capacidad }})
-                            </option>
-                        @endforeach
-                    </select>
-                    @error('aula_id')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="capacidad_maxima" class="block text-sm font-medium text-gray-700 mb-2">
-                        Capacidad Máxima <span class="text-red-500">*</span>
-                    </label>
-                    <input type="number" name="capacidad_maxima" id="capacidad_maxima" required min="1" max="50"
-                           value="{{ old('capacidad_maxima', 30) }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
-                    @error('capacidad_maxima')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="estado" class="block text-sm font-medium text-gray-700 mb-2">
-                        Estado <span class="text-red-500">*</span>
-                    </label>
-                    <select name="estado" id="estado" required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
-                        <option value="planificado" {{ old('estado') == 'planificado' ? 'selected' : '' }}>Planificado</option>
-                        <option value="con_profesor" {{ old('estado') == 'con_profesor' ? 'selected' : '' }}>Con Profesor</option>
-                        <option value="con_aula" {{ old('estado') == 'con_aula' ? 'selected' : '' }}>Con Aula</option>
-                        <option value="activo" {{ old('estado') == 'activo' ? 'selected' : '' }}>Activo</option>
-                        <option value="cancelado" {{ old('estado') == 'cancelado' ? 'selected' : '' }}>Cancelado</option>
-                    </select>
-                    @error('estado')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
-            </div>
-
-            <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                <a href="{{ route('coordinador.grupos.index') }}"
-                   class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-smooth flex items-center space-x-2">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>Cancelar</span>
-                </a>
-                <button type="submit"
-                        class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-smooth flex items-center space-x-2">
-                    <i class="fas fa-save"></i>
-                    <span>Crear Grupo</span>
-                </button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
+
+    <!-- Información -->
+    <div class="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-blue-500 text-xl mt-1"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">Información importante</h3>
+                <div class="mt-2 text-sm text-blue-700">
+                    <p class="mt-1">• El grupo se creará en estado "Planificado"</p>
+                    <p class="mt-1">• Posteriormente podrás asignar profesor y aula</p>
+                    <p class="mt-1">• El grupo estará listo cuando tenga profesor y aula asignados</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 @endsection

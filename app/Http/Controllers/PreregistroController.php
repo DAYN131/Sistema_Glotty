@@ -3,139 +3,138 @@
 namespace App\Http\Controllers;
 
 use App\Models\Preregistro;
-use App\Models\Grupo;
 use App\Models\Periodo;
+use App\Models\Horario;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
 
-// Asume que este controlador usa un middleware de autenticación y autorización
 class PreregistroController extends Controller
 {
     /**
-     * Muestra todos los pre-registros con filtros.
+     * Muestra el formulario de preregistro
      */
-    public function index(Request $request)
+    public function create()
     {
-        $query = Preregistro::with(['usuario', 'periodo', 'horarioSolicitado', 'grupoAsignado'])
-            ->orderBy('created_at', 'desc');
-
-        // Filtro por estado
-        if ($request->has('estado') && $request->estado !== 'todos') {
-            $query->where('estado', $request->estado);
-        } else {
-            // Por defecto, mostrar solo los pendientes y asignados
-            $query->whereIn('estado', [Preregistro::ESTADO['preregistrado'], Preregistro::ESTADO['asignado']]);
+        // Obtener periodo activo
+        $periodoActivo = Periodo::where('activo', true)->first();
+        
+        if (!$periodoActivo) {
+            return redirect()->route('alumno.dashboard')
+                ->with('error', '❌ No hay un periodo activo para preregistro.');
         }
 
-        $preregistros = $query->paginate(25);
-        $estados = Preregistro::ESTADO;
-        $periodos = Periodo::all();
+        // Obtener horarios activos
+        $horarios = Horario::where('activo', true)->get();
+        
+        // Verificar si ya tiene preregistro activo
+        $preregistroExistente = Preregistro::where('usuario_id', Auth::id())
+            ->where('periodo_id', $periodoActivo->id)
+            ->whereIn('estado', ['preregistrado', 'asignado', 'cursando'])
+            ->first();
 
-        return view('coordinador.preregistros.index', compact('preregistros', 'estados', 'periodos'));
+        if ($preregistroExistente) {
+            return redirect()->route('alumno.dashboard')
+                ->with('info', 'ℹ️ Ya tienes un preregistro activo para este periodo.');
+        }
+
+        return view('alumno.preregistro.create', compact('periodoActivo', 'horarios'));
     }
 
     /**
-     * Muestra los detalles de un pre-registro para su gestión.
+     * Almacena un nuevo preregistro
      */
-    public function show(Preregistro $preregistro)
+    public function store(Request $request)
     {
-        // Grupos disponibles para el nivel solicitado y el período del pre-registro
-        $gruposDisponibles = Grupo::where('periodo_id', $preregistro->periodo_id)
-            ->where('nivel_ingles', $preregistro->nivel_solicitado)
-            // Filtra grupos que aún tienen cupo (inscritos < capacidad)
-            ->whereRaw('estudiantes_inscritos < capacidad_maxima')
+        // Obtener periodo activo
+        $periodoActivo = Periodo::where('activo', true)->first();
+        
+        if (!$periodoActivo) {
+            return back()->with('error', '❌ No hay un periodo activo para preregistro.');
+        }
+
+        // Validar que no tenga preregistro activo
+        $preregistroExistente = Preregistro::where('usuario_id', Auth::id())
+            ->where('periodo_id', $periodoActivo->id)
+            ->whereIn('estado', ['preregistrado', 'asignado', 'cursando'])
+            ->first();
+
+        if ($preregistroExistente) {
+            return redirect()->route('alumno.dashboard')
+                ->with('error', '❌ Ya tienes un preregistro activo para este periodo.');
+        }
+
+        $validatedData = $request->validate([
+            'nivel_solicitado' => 'required|integer|between:1,5',
+            'horario_solicitado_id' => 'required|exists:horarios,id',
+            'semestre_carrera' => 'nullable|string|max:50',
+        ]);
+
+        try {
+            Preregistro::create([
+                'usuario_id' => Auth::id(),
+                'periodo_id' => $periodoActivo->id,
+                'nivel_solicitado' => $validatedData['nivel_solicitado'],
+                'horario_solicitado_id' => $validatedData['horario_solicitado_id'],
+                'semestre_carrera' => $validatedData['semestre_carrera'],
+                'estado' => Preregistro::ESTADO['preregistrado'],
+                'pagado' => Preregistro::PAGO['pendiente'],
+            ]);
+
+            return redirect()->route('alumno.preregistro.index')
+                ->with('success', '✅ Preregistro realizado exitosamente. Serás asignado a un grupo próximamente.');
+
+        } catch (\Exception $e) {
+            return back()->with('error', '❌ Error al realizar el preregistro: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+    /**
+     * Muestra los preregistros del alumno
+     */
+    public function index()
+    {
+        $preregistros = Preregistro::with(['periodo', 'horarioSolicitado', 'grupoAsignado'])
+            ->where('usuario_id', Auth::id())
+            ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('coordinador.preregistros.show', compact('preregistro', 'gruposDisponibles'));
-    }
-
-
-    /**
-     * Asigna un grupo a un preregistro existente y actualiza el estado.
-     */
-    public function asignarGrupo(Request $request, Preregistro $preregistro)
-    {
-        // 1. Validar el grupo
-        $request->validate([
-            'grupo_id' => 'required|exists:grupos,id',
-        ]);
-
-        $grupo = Grupo::findOrFail($request->grupo_id);
-
-        // 2. Verificaciones de Lógica de Negocio
-        if ($preregistro->estado !== Preregistro::ESTADO['preregistrado']) {
-            return back()->with('error', '❌ El pre-registro no está pendiente de asignación.');
-        }
-
-        if ($preregistro->nivel_solicitado !== $grupo->nivel_ingles) {
-            return back()->with('error', '❌ El nivel solicitado no coincide con el nivel del grupo.');
-        }
-
-        if ($grupo->estudiantes_inscritos >= $grupo->capacidad_maxima) {
-            return back()->with('error', '❌ El grupo ha alcanzado su cupo máximo. Selecciona otro.');
-        }
-
-        // 3. Procesar la asignación dentro de una transacción
-        try {
-            DB::beginTransaction();
-
-            // Actualizar el pre-registro
-            $preregistro->grupo_asignado_id = $grupo->id;
-            $preregistro->estado = Preregistro::ESTADO['asignado']; // Cambiar el estado a 'asignado'
-            $preregistro->save();
-
-            // Aumentar el contador de inscritos en la tabla 'grupos'
-            $grupo->increment('estudiantes_inscritos');
-
-            DB::commit();
-
-            return redirect()->route('coordinador.preregistros.show', $preregistro->id)
-                ->with('success', '✅ Grupo ' . $grupo->letra_grupo . ' asignado con éxito. Estado: ASIGNADO.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', '❌ Error al intentar asignar el grupo: ' . $e->getMessage());
-        }
+        return view('alumno.preregistro.index', compact('preregistros'));
     }
 
     /**
-     * Actualiza el estado de pago de un pre-registro.
+     * Muestra un preregistro específico
      */
-    public function actualizarPago(Request $request, Preregistro $preregistro)
+    public function show($id)
     {
-        $request->validate([
-            'pagado' => ['required', Rule::in(array_keys(Preregistro::PAGO))],
-        ]);
+        $preregistro = Preregistro::with(['periodo', 'horarioSolicitado', 'grupoAsignado', 'grupoAsignado.profesor', 'grupoAsignado.aula'])
+            ->where('usuario_id', Auth::id())
+            ->where('id', $id)
+            ->firstOrFail();
 
-        $nuevoEstadoPago = $request->pagado;
-        $estadoActual = $preregistro->estado;
+        return view('alumno.preregistro.show', compact('preregistro'));
+    }
 
+    /**
+     * Cancela un preregistro
+     */
+    public function cancel($id)
+    {
         try {
-            DB::beginTransaction();
+            $preregistro = Preregistro::where('usuario_id', Auth::id())
+                ->where('id', $id)
+                ->where('estado', Preregistro::ESTADO['preregistrado'])
+                ->firstOrFail();
 
-            $preregistro->pagado = $nuevoEstadoPago;
+            $preregistro->update([
+                'estado' => Preregistro::ESTADO['cancelado']
+            ]);
 
-            // Lógica para cambiar el estado de INSCRIPCIÓN al estar pagado
-            // Si el alumno paga y ya tiene grupo asignado, su estado final es 'cursando'.
-            if ($nuevoEstadoPago === Preregistro::PAGO['pagado'] && $preregistro->grupo_asignado_id !== null) {
-                $preregistro->estado = Preregistro::ESTADO['cursando'];
-            }
-
-            // Si el coordinador lo pone como "pendiente", revierte a asignado si estaba cursando
-            if ($nuevoEstadoPago === Preregistro::PAGO['pendiente'] && $estadoActual === Preregistro::ESTADO['cursando']) {
-                $preregistro->estado = Preregistro::ESTADO['asignado'];
-            }
-
-            $preregistro->save();
-
-            DB::commit();
-
-            return back()->with('success', '✅ Estado de pago y de inscripción actualizados correctamente.');
+            return redirect()->route('alumno.preregistro.index')
+                ->with('success', '✅ Preregistro cancelado exitosamente.');
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', '❌ Error al actualizar el estado de pago: ' . $e->getMessage());
+            return back()->with('error', '❌ No se pudo cancelar el preregistro: ' . $e->getMessage());
         }
     }
 }
