@@ -74,19 +74,44 @@ Route::middleware(['auth:coordinador'])->group(function () {
 
     // Gestión de Periodos
     Route::prefix('coordinador/periodos')->group(function () {
+        // Rutas CRUD básicas
         Route::get('/', [PeriodoController::class, 'index'])
             ->name('coordinador.periodos.index');
+        
         Route::get('/crear', [PeriodoController::class, 'create'])
             ->name('coordinador.periodos.create');
+        
         Route::post('/', [PeriodoController::class, 'store'])
             ->name('coordinador.periodos.store');
-        Route::get('/{id}/editar', [PeriodoController::class, 'edit'])
+        
+        
+        Route::get('/{periodo}/editar', [PeriodoController::class, 'edit'])
             ->name('coordinador.periodos.edit');
-        Route::put('/{id}', [PeriodoController::class, 'update'])
+        
+        Route::put('/{periodo}', [PeriodoController::class, 'update'])
             ->name('coordinador.periodos.update');
-        Route::delete('/{id}', [PeriodoController::class, 'destroy'])
+        
+        Route::delete('/{periodo}', [PeriodoController::class, 'destroy'])
             ->name('coordinador.periodos.destroy');
+
+        //  Rutas de cambio de estado ESPECÍFICAS
+        Route::post('/{periodo}/activar-preregistros', [PeriodoController::class, 'activarPreregistros'])
+            ->name('coordinador.periodos.activar-preregistros');
+        
+        Route::post('/{periodo}/cerrar-preregistros', [PeriodoController::class, 'cerrarPreregistros'])
+            ->name('coordinador.periodos.cerrar-preregistros');
+        
+        Route::post('/{periodo}/iniciar-periodo', [PeriodoController::class, 'iniciarPeriodo'])
+            ->name('coordinador.periodos.iniciar-periodo');
+        
+        Route::post('/{periodo}/finalizar-periodo', [PeriodoController::class, 'finalizarPeriodo'])
+            ->name('coordinador.periodos.finalizar-periodo');
+
+        // 🎯 Ruta de cambio de estado FLEXIBLE
+        Route::post('/{periodo}/cambiar-estado', [PeriodoController::class, 'cambiarEstado'])
+            ->name('coordinador.periodos.cambiar-estado');
     });
+
 
     // Gestión de Aulas
     Route::prefix('coordinador/aulas')->group(function () {

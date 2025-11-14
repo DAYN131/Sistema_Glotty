@@ -81,20 +81,38 @@
 
 <!-- Main Grid mejorado -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <!-- Tarjeta Preregistros -->
-    <a href="{{ route('coordinador.preregistros.demanda') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
+
+    <!-- Tarjeta de Periodos -->
+    <a href="{{ route('coordinador.periodos.index') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
         <div class="flex items-center mb-5">
-            <div class="p-3 bg-indigo-100 rounded-lg mr-4 group-hover:bg-indigo-200 transition-smooth">
-                <i class="fas fa-file-signature text-indigo-600 text-xl"></i>
+            <div class="p-3 bg-indigo-100 rounded-xl mr-4 group-hover:bg-indigo-200 transition-smooth">
+                <i class="fas fa-calendar-check text-indigo-600 text-xl"></i>
             </div>
-            <h3 class="text-lg font-semibold text-gray-800">Preregistros</h3>
+            <h3 class="text-lg font-semibold text-gray-800">Periodos</h3>
         </div>
-        <p class="text-text-secondary mb-5">Analizar demanda y asignar grupos según los preregistros.</p>
+        <p class="text-text-secondary mb-5">Administra los periodos escolares y ciclos académicos</p>
         <div class="text-indigo-600 font-medium group-hover:text-indigo-700 transition-smooth flex items-center">
             Gestionar
             <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
         </div>
     </a>
+
+
+    <!-- Tarjeta Horarios -->
+    <a href="{{ route('coordinador.horarios.index') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
+        <div class="flex items-center mb-5">
+            <div class="p-3 bg-violet-100 rounded-lg mr-4 group-hover:bg-violet-200 transition-smooth">
+                <i class="fas fa-calendar-days text-violet-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">Horarios</h3>
+        </div>
+        <p class="text-text-secondary mb-5">Administra horarios de clases y disponibilidad de aulas.</p>
+        <div class="text-violet-600 font-medium group-hover:text-violet-700 transition-smooth flex items-center">
+            Gestionar
+            <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
+        </div>
+    </a>
+
 
     <!-- Tarjeta Profesores -->
     <a href="{{ route('coordinador.profesores.index') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
@@ -106,21 +124,6 @@
         </div>
         <p class="text-text-secondary mb-5">Administra la plantilla docente y las asignaciones de cursos.</p>
         <div class="text-emerald-600 font-medium group-hover:text-emerald-700 transition-smooth flex items-center">
-            Gestionar
-            <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
-        </div>
-    </a>
-
-    <!-- Tarjeta Grupos -->
-    <a href="" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
-        <div class="flex items-center mb-5">
-            <div class="p-3 bg-teal-100 rounded-lg mr-4 group-hover:bg-teal-200 transition-smooth">
-                <i class="fas fa-users-between-lines text-teal-600 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-800">Grupos</h3>
-        </div>
-        <p class="text-text-secondary mb-5">Gestiona los grupos académicos y la asignación de alumnos.</p>
-        <div class="text-teal-600 font-medium group-hover:text-teal-700 transition-smooth flex items-center">
             Gestionar
             <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
         </div>
@@ -140,21 +143,43 @@
             <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
         </div>
     </a>
-    
-    <!-- Tarjeta Horarios -->
-    <a href="{{ route('coordinador.horarios.index') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
+
+
+    <!-- Tarjeta Preregistros -->
+    <a href="{{ route('coordinador.preregistros.demanda') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
         <div class="flex items-center mb-5">
-            <div class="p-3 bg-violet-100 rounded-lg mr-4 group-hover:bg-violet-200 transition-smooth">
-                <i class="fas fa-calendar-days text-violet-600 text-xl"></i>
+            <div class="p-3 bg-indigo-100 rounded-lg mr-4 group-hover:bg-indigo-200 transition-smooth">
+                <i class="fas fa-file-signature text-indigo-600 text-xl"></i>
             </div>
-            <h3 class="text-lg font-semibold text-gray-800">Horarios</h3>
+            <h3 class="text-lg font-semibold text-gray-800">Preregistros</h3>
         </div>
-        <p class="text-text-secondary mb-5">Administra horarios de clases y disponibilidad de aulas.</p>
-        <div class="text-violet-600 font-medium group-hover:text-violet-700 transition-smooth flex items-center">
+        <p class="text-text-secondary mb-5">Analizar demanda y asignar grupos según los preregistros.</p>
+        <div class="text-indigo-600 font-medium group-hover:text-indigo-700 transition-smooth flex items-center">
             Gestionar
             <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
         </div>
     </a>
+
+
+
+    <!-- Tarjeta Grupos -->
+    <a href="" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
+        <div class="flex items-center mb-5">
+            <div class="p-3 bg-teal-100 rounded-lg mr-4 group-hover:bg-teal-200 transition-smooth">
+                <i class="fas fa-users-between-lines text-teal-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">Grupos</h3>
+        </div>
+        <p class="text-text-secondary mb-5">Gestiona los grupos académicos y la asignación de alumnos.</p>
+        <div class="text-teal-600 font-medium group-hover:text-teal-700 transition-smooth flex items-center">
+            Gestionar
+            <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
+        </div>
+    </a>
+
+
+    
+
     
     <!-- Tarjeta Constancias -->
     <a href="" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
@@ -171,20 +196,7 @@
         </div>
     </a>
 
-    <!-- Tarjeta de Periodos -->
-    <a href="{{ route('coordinador.periodos.index') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
-        <div class="flex items-center mb-5">
-            <div class="p-3 bg-indigo-100 rounded-xl mr-4 group-hover:bg-indigo-200 transition-smooth">
-                <i class="fas fa-calendar-check text-indigo-600 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-800">Periodos</h3>
-        </div>
-        <p class="text-text-secondary mb-5">Administra los periodos escolares y ciclos académicos</p>
-        <div class="text-indigo-600 font-medium group-hover:text-indigo-700 transition-smooth flex items-center">
-            Gestionar
-            <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
-        </div>
-    </a>
+
      
     <!-- Tarjeta de Aulas -->
     <a href="{{ route('coordinador.aulas.index') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">

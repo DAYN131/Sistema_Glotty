@@ -4,14 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Horario extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
+    // ✅ CORRECTO - La tabla coincide
     protected $table = 'horarios';
 
+    // ✅ CORRECTO - Fillables están bien
     protected $fillable = [
         'nombre',
         'tipo',
@@ -22,49 +23,55 @@ class Horario extends Model
     ];
 
     protected $casts = [
-        'dias' => 'array', // Esto automáticamente convierte el JSON a array
-        'hora_inicio' => 'datetime:H:i',
-        'hora_fin' => 'datetime:H:i',
-        'activo' => 'boolean',
+        'dias' => 'array', // ✅ CORRECTO para JSON
+        'activo' => 'boolean', // ✅ CORRECTO
+        // ❌ FALTAN los casts para created_at y updated_at
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
     ];
 
     /**
-     * Relación con grupos
+     * ❌ CORREGIR: La relación con grupos es a través de horarios_periodo
+     * Los grupos se relacionan con horarios_periodo, no directamente con horarios
      */
-    public function grupos()
+    public function horariosPeriodo()
     {
-        return $this->hasMany(Grupo::class, 'horario_id');
+        return $this->hasMany(HorarioPeriodo::class, 'horario_base_id');
     }
 
     /**
-     * Scope para horarios activos
+     * Relación indirecta con grupos a través de horarios_periodo
      */
+    public function grupos()
+    {
+        return $this->hasManyThrough(
+            Grupo::class,
+            HorarioPeriodo::class,
+            'horario_base_id', // Foreign key en horarios_periodo
+            'horario_periodo_id', // Foreign key en grupos
+            'id', // Local key en horarios
+            'id' // Local key en horarios_periodo
+        );
+    }
+
+    // ✅ CORRECTO - Scopes están bien
     public function scopeActivos($query)
     {
         return $query->where('activo', true);
     }
 
-    /**
-     * Scope para horarios por tipo
-     */
     public function scopePorTipo($query, $tipo)
     {
         return $query->where('tipo', $tipo);
     }
 
-    /**
-     * Obtener los días como string legible
-     */
+    // ✅ CORRECTO - Accessors están bien
     public function getDiasLegiblesAttribute()
     {
         if (empty($this->dias)) {
             return '';
         }
 
-        // Asegurarnos de que tenemos un array
         $dias = $this->dias;
         if (is_string($dias)) {
             $dias = json_decode($dias, true);
@@ -73,9 +80,6 @@ class Horario extends Model
         return is_array($dias) ? implode(', ', $dias) : '';
     }
 
-    /**
-     * Obtener el rango de horas legible
-     */
     public function getHorarioLegibleAttribute()
     {
         $horaInicio = $this->hora_inicio instanceof \DateTime 
@@ -89,25 +93,16 @@ class Horario extends Model
         return $horaInicio . ' - ' . $horaFin;
     }
 
-    /**
-     * Obtener la descripción completa del horario
-     */
     public function getDescripcionCompletaAttribute()
     {
         return $this->nombre . ' (' . $this->dias_legibles . ' ' . $this->horario_legible . ')';
     }
 
-    /**
-     * Verificar si el horario está activo
-     */
     public function estaActivo()
     {
         return $this->activo;
     }
 
-    /**
-     * Accesor para obtener los días como array
-     */
     public function getDiasArrayAttribute()
     {
         if (empty($this->dias)) {

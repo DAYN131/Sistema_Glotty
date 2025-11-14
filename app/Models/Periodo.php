@@ -1,99 +1,114 @@
 <?php
+// app/Models/Periodo.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class Periodo extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'nombre',
-        'anio',        // 🆕 Para control y visualización
-        'fecha_inicio',
+        'nombre_periodo',
+        'fecha_inicio', 
         'fecha_fin',
-        'activo'
+        'estado'
     ];
 
     protected $casts = [
         'fecha_inicio' => 'date',
         'fecha_fin' => 'date',
-        'activo' => 'boolean'
     ];
 
-    // 🆕 RELACIÓN CON GRUPOS
+    // 🔥 RELACIONES
+    public function horariosPeriodo()
+    {
+        return $this->hasMany(HorarioPeriodo::class);
+    }
+
+    public function horariosBase()
+    {
+        return $this->belongsToMany(
+            Horario::class,
+            'horarios_periodo',
+            'periodo_id',
+            'horario_base_id'
+        )->withPivot('activo')->withTimestamps();
+    }
+
     public function grupos()
     {
-        return $this->hasMany(Grupo::class, 'periodo_id');
+        return $this->hasMany(Grupo::class);
     }
 
-    // 🆕 SCOPE PARA AÑO ACTUAL
-    public function scopeAnioActual($query)
+    public function preregistros()
     {
-        return $query->where('anio', date('Y'));
+        return $this->hasMany(Preregistro::class);
     }
 
-    // 🆕 SCOPE PARA AÑO ESPECÍFICO
-    public function scopeAnio($query, $anio)
-    {
-        return $query->where('anio', $anio);
-    }
-
-    // Solo un periodo activo a la vez
+    // 🎯 SCOPES ÚTILES
     public function scopeActivo($query)
     {
-        return $query->where('activo', true);
+        return $query->where('estado', 'en_curso');
     }
 
-    // 🆕 ACCESOR PARA NOMBRE COMPLETO
-    public function getNombreCompletoAttribute()
+    public function scopeConPreRegistrosActivos($query)
     {
-        return $this->nombre . ' ' . $this->anio;
+        return $query->where('estado', 'preregistros_activos');
     }
 
-    // 🆕 VALIDACIÓN: LAS FECHAS DEBEN COINCIDIR CON EL AÑO
-    public function validarFechasConAnio()
+    public function scopeFinalizados($query)
     {
-        return $this->fecha_inicio->year == $this->anio && 
-               $this->fecha_fin->year == $this->anio;
+        return $query->where('estado', 'finalizado');
     }
 
-    // Scope para períodos futuros (próximos)
-    public function scopeFuturos($query)
+    // ✅ MÉTODOS DE ESTADO
+    public function estaEnConfiguracion()
     {
-        $hoy = Carbon::today();
-        return $query->where('fecha_inicio', '>', $hoy)
-                    ->where('activo', true);
+        return $this->estado === 'configuracion';
     }
 
-    // Verificar si el período está activo (basado en fechas REALES)
-    public function estaActivo()
+    public function aceptaPreRegistros()
     {
-        $hoy = Carbon::today();
-        return $this->activo && 
-               $hoy->between($this->fecha_inicio, $this->fecha_fin);
+        return $this->estado === 'preregistros_activos';
     }
 
-    // Verificar si el período es futuro
-    public function esFuturo()
+    public function estaEnCurso()
     {
-        $hoy = Carbon::today();
-        return $this->fecha_inicio > $hoy;
+        return $this->estado === 'en_curso';
     }
 
-    // 🆕 DURACIÓN EN DÍAS
-    public function getDuracionDiasAttribute()
+    public function estaFinalizado()
+    {
+        return $this->estado === 'finalizado';
+    }
+
+    public function getDiasDuracionAttribute(): int
     {
         return $this->fecha_inicio->diffInDays($this->fecha_fin);
     }
 
-    // 🆕 VERIFICAR SI ESTÁ EN CURSO
-    public function getEnCursoAttribute()
+
+    public function puedeEliminarse()
     {
-        $hoy = Carbon::today();
-        return $hoy->between($this->fecha_inicio, $this->fecha_fin);
+        return $this->estaEnConfiguracion() && 
+            $this->grupos()->count() === 0 &&
+            $this->preregistros()->count() === 0;
     }
+
+    // ✅ Para usar en validaciones
+    public function puedeCambiarA($nuevoEstado)
+    {
+        $transicionesPermitidas = [
+            'configuracion' => ['preregistros_activos'],
+            'preregistros_activos' => ['en_curso', 'configuracion'],
+            'en_curso' => ['finalizado', 'preregistros_activos'],
+            'finalizado' => []
+        ];
+
+        return in_array($nuevoEstado, $transicionesPermitidas[$this->estado]);
+    }
+
 }
