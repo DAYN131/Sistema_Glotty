@@ -9,6 +9,7 @@ use App\Http\Controllers\PreregistroController;
 use App\Http\Controllers\CoordinadorPreregistroController;
 use App\Http\Controllers\GrupoController;
 
+
 // Rutas públicas
 Route::get('/', function () {
    return view('login');
@@ -72,46 +73,56 @@ Route::middleware(['auth:coordinador'])->group(function () {
             ->name('coordinador.profesores.destroy');
     });
 
-    // Gestión de Periodos
-    Route::prefix('coordinador/periodos')->group(function () {
-        // Rutas CRUD básicas
-        Route::get('/', [PeriodoController::class, 'index'])
-            ->name('coordinador.periodos.index');
-        
-        Route::get('/crear', [PeriodoController::class, 'create'])
-            ->name('coordinador.periodos.create');
-        
-        Route::post('/', [PeriodoController::class, 'store'])
-            ->name('coordinador.periodos.store');
-        
-        
-        Route::get('/{periodo}/editar', [PeriodoController::class, 'edit'])
-            ->name('coordinador.periodos.edit');
-        
-        Route::put('/{periodo}', [PeriodoController::class, 'update'])
-            ->name('coordinador.periodos.update');
-        
-        Route::delete('/{periodo}', [PeriodoController::class, 'destroy'])
-            ->name('coordinador.periodos.destroy');
+// Gestión de Periodos
+Route::prefix('coordinador/periodos')->group(function () {
+    // Rutas CRUD básicas
+    Route::get('/', [PeriodoController::class, 'index'])
+        ->name('coordinador.periodos.index');
+    
+    Route::get('/crear', [PeriodoController::class, 'create'])
+        ->name('coordinador.periodos.create');
+    
+    Route::post('/', [PeriodoController::class, 'store'])
+        ->name('coordinador.periodos.store');
+    
+    Route::get('/{periodo}', [PeriodoController::class, 'show'])
+        ->name('coordinador.periodos.show');
+    
+    Route::get('/{periodo}/editar', [PeriodoController::class, 'edit'])
+        ->name('coordinador.periodos.edit');
+    
+    Route::put('/{periodo}', [PeriodoController::class, 'update'])
+        ->name('coordinador.periodos.update');
+    
+    Route::delete('/{periodo}', [PeriodoController::class, 'destroy'])
+        ->name('coordinador.periodos.destroy');
 
-        //  Rutas de cambio de estado ESPECÍFICAS
-        Route::post('/{periodo}/activar-preregistros', [PeriodoController::class, 'activarPreregistros'])
-            ->name('coordinador.periodos.activar-preregistros');
-        
-        Route::post('/{periodo}/cerrar-preregistros', [PeriodoController::class, 'cerrarPreregistros'])
-            ->name('coordinador.periodos.cerrar-preregistros');
-        
-        Route::post('/{periodo}/iniciar-periodo', [PeriodoController::class, 'iniciarPeriodo'])
-            ->name('coordinador.periodos.iniciar-periodo');
-        
-        Route::post('/{periodo}/finalizar-periodo', [PeriodoController::class, 'finalizarPeriodo'])
-            ->name('coordinador.periodos.finalizar-periodo');
+    // Rutas de cambio de estado
+    Route::post('/{periodo}/activar-preregistros', [PeriodoController::class, 'activarPreregistros'])
+        ->name('coordinador.periodos.activar-preregistros');
+    
+    Route::post('/{periodo}/cerrar-preregistros', [PeriodoController::class, 'cerrarPreregistros'])
+        ->name('coordinador.periodos.cerrar-preregistros');
+    
+    Route::post('/{periodo}/iniciar-periodo', [PeriodoController::class, 'iniciarPeriodo'])
+        ->name('coordinador.periodos.iniciar-periodo');
+    
+    Route::post('/{periodo}/finalizar-periodo', [PeriodoController::class, 'finalizarPeriodo'])
+        ->name('coordinador.periodos.finalizar-periodo');
 
-        // 🎯 Ruta de cambio de estado FLEXIBLE
-        Route::post('/{periodo}/cambiar-estado', [PeriodoController::class, 'cambiarEstado'])
-            ->name('coordinador.periodos.cambiar-estado');
-    });
+    Route::post('/{periodo}/cambiar-estado', [PeriodoController::class, 'cambiarEstado'])
+        ->name('coordinador.periodos.cambiar-estado');
 
+    // 🎯 RUTAS CORREGIDAS PARA HORARIOS DEL PERIODO
+    Route::post('/{periodo}/regenerar-horarios', [PeriodoController::class, 'regenerarHorarios'])
+        ->name('coordinador.periodos.regenerar-horarios');
+    
+    Route::post('/{periodo}/toggle-horario/{horarioPeriodo}', [PeriodoController::class, 'toggleHorarioPeriodo'])
+        ->name('coordinador.periodos.toggle-horario');
+    
+    Route::delete('/{periodo}/eliminar-horario/{horarioPeriodo}', [PeriodoController::class, 'eliminarHorarioPeriodo'])
+        ->name('coordinador.periodos.eliminar-horario');
+});
 
     // Gestión de Aulas
     Route::prefix('coordinador/aulas')->group(function () {
@@ -129,31 +140,17 @@ Route::middleware(['auth:coordinador'])->group(function () {
             ->name('coordinador.aulas.destroy');
     });
 
-    // Gestión de Horarios
-    Route::prefix('coordinador/horarios')->group(function () {
-        // Rutas estándar del CRUD
-        Route::get('/', [HorarioController::class, 'index'])
-            ->name('coordinador.horarios.index');
-        Route::get('/crear', [HorarioController::class, 'create'])
-            ->name('coordinador.horarios.create');
-        Route::post('/', [HorarioController::class, 'store'])
-            ->name('coordinador.horarios.store');
-        Route::get('/{id}/editar', [HorarioController::class, 'edit'])
-            ->name('coordinador.horarios.edit');
-        Route::put('/{id}', [HorarioController::class, 'update'])
-            ->name('coordinador.horarios.update');
-        Route::delete('/{id}', [HorarioController::class, 'destroy'])
-            ->name('coordinador.horarios.destroy');
-        Route::put('/{id}/toggle-activo', [HorarioController::class, 'toggleActivo'])
-            ->name('coordinador.horarios.toggleActivo');
+    // routes/web.php
 
-        // Rutas para Soft Deletes (Papelera)
-        Route::get('/eliminados', [HorarioController::class, 'eliminados'])
-            ->name('coordinador.horarios.eliminados');
-        Route::put('/{id}/restore', [HorarioController::class, 'restore'])
-            ->name('coordinador.horarios.restore');
-        Route::delete('/{id}/force-delete', [HorarioController::class, 'forceDelete'])
-            ->name('coordinador.horarios.forceDelete');
+    Route::prefix('coordinador/horarios')->group(function () {
+        Route::get('/', [HorarioController::class, 'index'])->name('coordinador.horarios.index');
+        Route::get('/crear', [HorarioController::class, 'create'])->name('coordinador.horarios.create');
+        Route::post('/', [HorarioController::class, 'store'])->name('coordinador.horarios.store');
+        Route::get('/{horario}', [HorarioController::class, 'show'])->name('coordinador.horarios.show');
+        Route::get('/{horario}/editar', [HorarioController::class, 'edit'])->name('coordinador.horarios.edit');
+        Route::put('/{horario}', [HorarioController::class, 'update'])->name('coordinador.horarios.update');
+        Route::delete('/{horario}', [HorarioController::class, 'destroy'])->name('coordinador.horarios.destroy');
+        Route::post('/{horario}/toggle-activo', [HorarioController::class, 'toggleActivo'])->name('coordinador.horarios.toggle-activo');
     });
 
     // Gestión de Grupos

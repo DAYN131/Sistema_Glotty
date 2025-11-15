@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 use App\Models\Periodo;
 use App\Models\Horario;
 use Illuminate\Http\Request;
+use App\Models\HorarioPeriodo; 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -45,30 +46,101 @@ class PeriodoController extends Controller
         ]);
 
         try {
-            DB::transaction(function () use ($request) {
-                $periodo = Periodo::create([
-                    'nombre_periodo' => $request->nombre_periodo,
-                    'fecha_inicio' => $request->fecha_inicio,
-                    'fecha_fin' => $request->fecha_fin,
-                    'estado' => 'configuracion'
-                ]);
+            DB::beginTransaction(); // ← Iniciar transacción explícitamente
 
-                $this->asignarHorariosBase($periodo);
-            });
+            $periodo = Periodo::create([
+                'nombre_periodo' => $request->nombre_periodo,
+                'fecha_inicio' => $request->fecha_inicio,
+                'fecha_fin' => $request->fecha_fin,
+                'estado' => 'configuracion'
+            ]);
+
+            $this->asignarHorariosBase($periodo);
+
+            DB::commit(); // ← Confirmar transacción
 
             return redirect()->route('coordinador.periodos.index')
                 ->with('success', 'Período creado exitosamente.');
 
         } catch (\Exception $e) {
-            Log::error('Error creando período: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Error al crear el período.')->withInput();
+            DB::rollBack(); // ← Revertir transacción en caso de error
+            
+            Log::error('Error creando período: ' . $e->getMessage(), [
+                'request_data' => $request->all(),
+                'error_trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->back()
+                ->with('error', 'Error al crear el período: ' . $e->getMessage())
+                ->withInput();
+        }
+    }
+
+
+    public function regenerarHorarios(Periodo $periodo)
+    {
+
+
+        try {
+            DB::transaction(function () use ($periodo) {
+                // 1. Eliminar horarios-periodo existentes
+                $periodo->horariosPeriodo()->delete();
+                
+                // 2. Volver a generar desde horarios base activos
+                $this->asignarHorariosBase($periodo);
+            });
+
+            return redirect()->route('coordinador.periodos.show', $periodo)
+                ->with('success', 'Horarios regenerados exitosamente.');
+
+        } catch (\Exception $e) {
+            Log::error('Error regenerando horarios: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al regenerar horarios.');
+        }
+    }
+
+    public function eliminarHorarioPeriodo(Periodo $periodo, HorarioPeriodo $horarioPeriodo)
+    {
+        if (!$periodo->estaEnConfiguracion()) {
+            return redirect()->back()
+                ->with('warning', 'Solo se pueden eliminar horarios en periodos en "Configuración"');
+        }
+
+        // Verificar que el horario-pertenece al periodo
+        if ($horarioPeriodo->periodo_id !== $periodo->id) {
+            return redirect()->back()
+                ->with('error', 'El horario no pertenece a este periodo.');
+        }
+
+        try {
+            $nombreHorario = $horarioPeriodo->nombre;
+            $horarioPeriodo->delete();
+
+            Log::info('Horario periodo eliminado', [
+                'periodo_id' => $periodo->id,
+                'horario_periodo_id' => $horarioPeriodo->id,
+                'nombre' => $nombreHorario
+            ]);
+
+            return redirect()->route('coordinador.periodos.show', $periodo)
+                ->with('success', "Horario \"{$nombreHorario}\" eliminado del periodo.");
+
+        } catch (\Exception $e) {
+            Log::error('Error eliminando horario periodo: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al eliminar el horario.');
         }
     }
 
     public function show(Periodo $periodo)
     {
+        // Cargar horarios del periodo con sus relaciones
+        $horariosPeriodo = $periodo->horariosPeriodo()
+                                ->with('horarioBase')
+                                ->get();
+        
         $estadisticas = $this->obtenerEstadisticasDetalladas($periodo->id);
-        return view('coordinador.periodos.show', compact('periodo', 'estadisticas'));
+
+        return view('coordinador.periodos.show', compact('periodo', 'horariosPeriodo', 'estadisticas'));
     }
 
     public function edit(Periodo $periodo)
@@ -242,9 +314,6 @@ class PeriodoController extends Controller
         }
     }
 
-    /**
-     * 📊 MÉTODOS PRIVADOS DE APOYO
-     */
     private function asignarHorariosBase(Periodo $periodo)
     {
         $horariosBase = Horario::where('activo', true)->get();
@@ -254,23 +323,80 @@ class PeriodoController extends Controller
             return;
         }
 
-        $horariosData = [];
-        foreach ($horariosBase as $horario) {
-            $horariosData[] = [
+        try {
+            $horariosData = [];
+            foreach ($horariosBase as $horario) {
+                // ✅ NOMBRE DESCRIPTIVO con periodo
+                $nombreDescriptivo = $this->generarNombreHorarioPeriodo($horario, $periodo);
+                
+                $horariosData[] = [
+                    'periodo_id' => $periodo->id,
+                    'horario_base_id' => $horario->id,
+                    
+                    // ✅ NOMBRE MEJORADO con contexto del periodo
+                    'nombre' => $nombreDescriptivo,
+                    'tipo' => $horario->tipo,
+                    'dias' => json_encode($horario->dias),
+                    'hora_inicio' => $horario->hora_inicio->format('H:i:s'),
+                    'hora_fin' => $horario->hora_fin->format('H:i:s'),
+                    
+                    'activo' => true,
+                    'created_at' => now(),
+                ];
+            }
+
+            DB::table('horarios_periodo')->insert($horariosData);
+            
+            Log::info('Horarios base asignados al período', [
                 'periodo_id' => $periodo->id,
-                'horario_base_id' => $horario->id,
-                'activo' => true,
-                'created_at' => now(),
-                'updated_at' => now()
-            ];
+                'horarios_count' => count($horariosData)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error en asignarHorariosBase: ' . $e->getMessage());
+            throw $e;
+        }
+}
+
+    //  MÉTODO PARA GENERAR NOMBRES DESCRIPTIVOS
+    private function generarNombreHorarioPeriodo(Horario $horario, Periodo $periodo)
+    {
+        $base = str_replace('Plantilla', '', $horario->nombre);
+        $base = trim($base);
+        
+        return "{$base} - {$periodo->nombre_periodo}";
+    }
+
+     public function toggleHorarioPeriodo(Periodo $periodo, HorarioPeriodo $horarioPeriodo)
+    {
+        if (!$periodo->estaEnConfiguracion()) {
+            return redirect()->back()
+                ->with('warning', 'Solo se pueden modificar horarios en periodos en "Configuración"');
         }
 
-        DB::table('horarios_periodo')->insert($horariosData);
-        Log::info('Horarios base asignados al período', [
-            'periodo_id' => $periodo->id,
-            'horarios_count' => count($horariosData)
-        ]);
+        try {
+            $horarioPeriodo->update([
+                'activo' => !$horarioPeriodo->activo
+            ]);
+
+            $estado = $horarioPeriodo->activo ? 'activado' : 'desactivado';
+            
+            Log::info('Horario periodo toggled', [
+                'periodo_id' => $periodo->id,
+                'horario_periodo_id' => $horarioPeriodo->id,
+                'nuevo_estado' => $estado
+            ]);
+
+            return redirect()->route('coordinador.periodos.show', $periodo)
+                ->with('success', "Horario {$estado} correctamente.");
+
+        } catch (\Exception $e) {
+            Log::error('Error cambiando estado horario periodo: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al cambiar estado del horario.');
+        }
     }
+
+
 
     private function obtenerEstadisticasDetalladas($periodoId)
     {

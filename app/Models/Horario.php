@@ -1,4 +1,5 @@
 <?php
+// app/Models/Horario.php
 
 namespace App\Models;
 
@@ -9,110 +10,102 @@ class Horario extends Model
 {
     use HasFactory;
 
-    // ✅ CORRECTO - La tabla coincide
-    protected $table = 'horarios';
-
-    // ✅ CORRECTO - Fillables están bien
     protected $fillable = [
         'nombre',
-        'tipo',
+        'tipo', 
         'dias',
         'hora_inicio',
         'hora_fin',
-        'activo',
+        'activo'
     ];
 
     protected $casts = [
-        'dias' => 'array', // ✅ CORRECTO para JSON
-        'activo' => 'boolean', // ✅ CORRECTO
-        // ❌ FALTAN los casts para created_at y updated_at
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'dias' => 'array',
+        'hora_inicio' => 'datetime:H:i',
+        'hora_fin' => 'datetime:H:i',
+        'activo' => 'boolean'
     ];
 
-    /**
-     * ❌ CORREGIR: La relación con grupos es a través de horarios_periodo
-     * Los grupos se relacionan con horarios_periodo, no directamente con horarios
-     */
+
+
     public function horariosPeriodo()
     {
         return $this->hasMany(HorarioPeriodo::class, 'horario_base_id');
     }
 
-    /**
-     * Relación indirecta con grupos a través de horarios_periodo
-     */
-    public function grupos()
+    public function periodosActivos()
     {
-        return $this->hasManyThrough(
-            Grupo::class,
-            HorarioPeriodo::class,
-            'horario_base_id', // Foreign key en horarios_periodo
-            'horario_periodo_id', // Foreign key en grupos
-            'id', // Local key en horarios
-            'id' // Local key en horarios_periodo
-        );
+        return $this->belongsToMany(Periodo::class, 'horarios_periodo', 'horario_base_id', 'periodo_id')
+                    ->wherePivot('activo', true)
+                    ->withTimestamps();
     }
 
-    // ✅ CORRECTO - Scopes están bien
+    // 🎯 SCOPES ÚTILES
     public function scopeActivos($query)
     {
         return $query->where('activo', true);
     }
 
-    public function scopePorTipo($query, $tipo)
+    public function scopeSemanales($query)
     {
-        return $query->where('tipo', $tipo);
+        return $query->where('tipo', 'semanal');
     }
 
-    // ✅ CORRECTO - Accessors están bien
-    public function getDiasLegiblesAttribute()
+    public function scopeSabatinos($query)
     {
-        if (empty($this->dias)) {
-            return '';
-        }
-
-        $dias = $this->dias;
-        if (is_string($dias)) {
-            $dias = json_decode($dias, true);
-        }
-        
-        return is_array($dias) ? implode(', ', $dias) : '';
+        return $query->where('tipo', 'sabatino');
     }
 
-    public function getHorarioLegibleAttribute()
-    {
-        $horaInicio = $this->hora_inicio instanceof \DateTime 
-            ? $this->hora_inicio->format('H:i') 
-            : $this->hora_inicio;
-            
-        $horaFin = $this->hora_fin instanceof \DateTime 
-            ? $this->hora_fin->format('H:i') 
-            : $this->hora_fin;
-            
-        return $horaInicio . ' - ' . $horaFin;
-    }
-
-    public function getDescripcionCompletaAttribute()
-    {
-        return $this->nombre . ' (' . $this->dias_legibles . ' ' . $this->horario_legible . ')';
-    }
-
+    // ✅ MÉTODOS DE UTILIDAD
     public function estaActivo()
     {
         return $this->activo;
     }
 
-    public function getDiasArrayAttribute()
+    public function getDiasFormateadosAttribute()
     {
-        if (empty($this->dias)) {
-            return [];
-        }
+        if (!$this->dias) return '';
 
-        if (is_array($this->dias)) {
-            return $this->dias;
-        }
+        $diasMap = [
+            'Lunes' => 'Lun',
+            'Martes' => 'Mar', 
+            'Miércoles' => 'Mié',
+            'Jueves' => 'Jue',
+            'Viernes' => 'Vie',
+            'Sábado' => 'Sáb',
+            'Domingo' => 'Dom'
+        ];
 
-        return json_decode($this->dias, true) ?? [];
+        return collect($this->dias)->map(function ($dia) use ($diasMap) {
+            return $diasMap[$dia] ?? $dia;
+        })->implode(', ');
     }
+
+    public function getHorarioCompletoAttribute()
+    {
+        return "{$this->dias_formateados} {$this->hora_inicio->format('H:i')} - {$this->hora_fin->format('H:i')}";
+    }
+
+    public function getDuracionAttribute()
+    {
+        return $this->hora_inicio->diffInHours($this->hora_fin);
+    }
+
+    public function sePuedeEliminar()
+    {
+        // No se puede eliminar si está siendo usado en algún periodo
+        return $this->horariosPeriodo()->count() === 0;
+    }
+
+    public function enUsoEnPeriodosActivos()
+    {
+        return $this->horariosPeriodo()
+                    ->whereHas('periodo', function($query) {
+                        $query->where('estado', '!=', 'finalizado');
+                    })
+                    ->exists();
+    }
+
+
+
 }

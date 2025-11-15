@@ -208,10 +208,15 @@
 
                             {{-- SECCIÓN DE ACCIONES MEJORADA --}}
                             <div class="flex flex-col gap-3 lg:flex-shrink-0 min-w-[200px]">
-                               
+                                {{-- Botón Ver Detalles --}}
+                                <a href="{{ route('coordinador.periodos.show', $periodo) }}"
+                                    class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg transition-smooth flex items-center justify-center gap-2 text-sm w-full">
+                                    <i class="fas fa-eye"></i>
+                                    <span>Ver Detalles</span>
+                                </a>
 
                                 {{-- Acciones de Administración --}}
-                                <div class="border-t pt-3 mt-2">
+                                <div class="border-t pt-3">
                                     <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 text-center">Administración</h4>
                                     
                                     <div class="flex flex-col gap-2">
@@ -237,31 +242,31 @@
                                             @endif
                                         @endif
 
-                                       {{-- Dropdown Cambiar Estado --}}
-                                    <div class="relative">
-                                        <select name="nuevo_estado" 
-                                                class="cambiar-estado-selector appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-smooth cursor-pointer w-full text-sm"
-                                                data-periodo-id="{{ $periodo->id }}"
-                                                data-periodo-nombre="{{ $periodo->nombre_periodo }}"
-                                                data-current-state="{{ $periodo->estado }}">
-                                            <option value="" disabled selected>↻ Cambiar Estado</option>
-                                            <option value="configuracion" {{ $periodo->estado == 'configuracion' ? 'disabled' : '' }}>
-                                                ⚙ Configuración
-                                            </option>
-                                            <option value="preregistros_activos" {{ $periodo->estado == 'preregistros_activos' ? 'disabled' : '' }}>
-                                                ✎ Pre-registros Activos
-                                            </option>
-                                            <option value="en_curso" {{ $periodo->estado == 'en_curso' ? 'disabled' : '' }}>
-                                                ⦿ En Curso
-                                            </option>
-                                            <option value="finalizado" {{ $periodo->estado == 'finalizado' ? 'disabled' : '' }}>
-                                                ✓ Finalizado
-                                            </option>
-                                        </select>
-                                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                                            <i class="fas fa-chevron-down text-xs"></i>
+                                        {{-- Dropdown Cambiar Estado --}}
+                                        <div class="relative">
+                                            <select name="nuevo_estado" 
+                                                    class="cambiar-estado-selector appearance-none bg-white border border-gray-300 rounded-lg px-4 py-2 pr-10 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-smooth cursor-pointer w-full text-sm"
+                                                    data-periodo-id="{{ $periodo->id }}"
+                                                    data-periodo-nombre="{{ $periodo->nombre_periodo }}"
+                                                    data-current-state="{{ $periodo->estado }}">
+                                                <option value="" disabled selected>↻ Cambiar Estado</option>
+                                                <option value="configuracion" {{ $periodo->estado == 'configuracion' ? 'disabled' : '' }}>
+                                                    ⚙ Configuración
+                                                </option>
+                                                <option value="preregistros_activos" {{ $periodo->estado == 'preregistros_activos' ? 'disabled' : '' }}>
+                                                    ✎ Pre-registros Activos
+                                                </option>
+                                                <option value="en_curso" {{ $periodo->estado == 'en_curso' ? 'disabled' : '' }}>
+                                                    ⦿ En Curso
+                                                </option>
+                                                <option value="finalizado" {{ $periodo->estado == 'finalizado' ? 'disabled' : '' }}>
+                                                    ✓ Finalizado
+                                                </option>
+                                            </select>
+                                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                                <i class="fas fa-chevron-down text-xs"></i>
+                                            </div>
                                         </div>
-                                    </div>
                                     </div>
                                 </div>
                             </div>
