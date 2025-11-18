@@ -14,16 +14,22 @@
             @csrf
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div class="col-span-2">
-                    <label for="id_aula" class="block text-sm font-medium text-gray-700 mb-2">
-                        Identificador del Aula (Generado automáticamente)
+                {{-- Nombre Corto del Aula --}}
+                <div>
+                    <label for="nombre" class="block text-sm font-medium text-gray-700 mb-2">
+                        Nombre/Número <span class="text-red-500">*</span>
                     </label>
-                    <input type="text" name="id_aula" id="id_aula" readonly
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-                           placeholder="Se generará automáticamente">
-                    <p class="text-sm text-gray-500 mt-1">Se genera como: Edificio-Nombre (Ej: A-101, L-LBD)</p>
+                    <input type="text" name="nombre" id="nombre" required
+                           value="{{ old('nombre') }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth"
+                           placeholder="Ej: 101, LBD, M2, 05">
+                    <p class="text-sm text-gray-500 mt-1">Código o número del aula</p>
+                    @error('nombre')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
+                {{-- Edificio --}}
                 <div>
                     <label for="edificio" class="block text-sm font-medium text-gray-700 mb-2">
                         Edificio <span class="text-red-500">*</span>
@@ -37,20 +43,7 @@
                     @enderror
                 </div>
 
-                <div>
-                    <label for="nombre_aula" class="block text-sm font-medium text-gray-700 mb-2">
-                        Nombre/Número de Aula <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" name="nombre_aula" id="nombre_aula" required
-                           value="{{ old('nombre_aula') }}"
-                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth"
-                           placeholder="Ej: 101, LBD, M2, 05">
-                    <p class="text-sm text-gray-500 mt-1">Puede ser número (101) o nombre (LBD)</p>
-                    @error('nombre_aula')
-                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
-                    @enderror
-                </div>
-
+                {{-- Capacidad --}}
                 <div>
                     <label for="capacidad" class="block text-sm font-medium text-gray-700 mb-2">
                         Capacidad <span class="text-red-500">*</span>
@@ -64,20 +57,65 @@
                     @enderror
                 </div>
 
+                {{-- Tipo de Aula --}}
                 <div>
-                    <label for="tipo_aula" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="tipo" class="block text-sm font-medium text-gray-700 mb-2">
                         Tipo de Aula <span class="text-red-500">*</span>
                     </label>
-                    <select name="tipo_aula" id="tipo_aula" required
+                    <select name="tipo" id="tipo" required
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
                         <option value="">Seleccione el tipo de aula</option>
-                        <option value="regular" {{ old('tipo_aula') == 'regular' ? 'selected' : '' }}>Regular</option>
-                        <option value="laboratorio" {{ old('tipo_aula') == 'laboratorio' ? 'selected' : '' }}>Laboratorio</option>
+                        <option value="regular" {{ old('tipo') == 'regular' ? 'selected' : '' }}>Aula Regular</option>
+                        <option value="laboratorio" {{ old('tipo') == 'laboratorio' ? 'selected' : '' }}>Laboratorio</option>
+                        <option value="computo" {{ old('tipo') == 'computo' ? 'selected' : '' }}>Sala de Cómputo</option>
+                        <option value="audiovisual" {{ old('tipo') == 'audiovisual' ? 'selected' : '' }}>Aula Audiovisual</option>
                     </select>
-                    @error('tipo_aula')
+                    @error('tipo')
                     <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                     @enderror
                 </div>
+
+                {{-- Equipamiento --}}
+                <div class="md:col-span-2">
+                    <label for="equipamiento" class="block text-sm font-medium text-gray-700 mb-2">
+                        Equipamiento
+                    </label>
+                    <textarea name="equipamiento" id="equipamiento" rows="3"
+                              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth"
+                              placeholder="Ej: Proyector, 25 computadoras, pizarra interactiva...">{{ old('equipamiento') }}</textarea>
+                    <p class="text-sm text-gray-500 mt-1">Lista de equipamiento disponible (opcional)</p>
+                    @error('equipamiento')
+                    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- Estado Disponible --}}
+                <div class="md:col-span-2">
+                    <div class="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                        <input type="checkbox" name="disponible" id="disponible" value="1" 
+                               {{ old('disponible', true) ? 'checked' : '' }}
+                               class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                        <label for="disponible" class="text-sm font-medium text-gray-700">
+                            Aula disponible para asignación
+                        </label>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">
+                        Si se desactiva, el aula no podrá ser asignada a grupos hasta que se reactive.
+                    </p>
+                </div>
+            </div>
+
+            {{-- Vista previa del identificador --}}
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <h4 class="font-medium text-blue-800 mb-2">Se mostrará como:</h4>
+                <div id="vista-previa" class="text-blue-700 font-semibold">
+                    @if(old('edificio') && old('nombre'))
+                        {{ old('edificio') }}-{{ old('nombre') }}
+                    @else
+                        [Edificio]-[Nombre]
+                    @endif
+                </div>
+                <p class="text-sm text-blue-600 mt-1">Este será el identificador único del aula en el sistema</p>
             </div>
 
             <div class="flex justify-end space-x-4 pt-6 border-t border-gray-200">
@@ -96,25 +134,32 @@
     </div>
 
     <script>
-        // Generar el ID del aula en tiempo real
+        // Actualizar vista previa en tiempo real
         document.addEventListener('DOMContentLoaded', function() {
             const edificioInput = document.getElementById('edificio');
-            const nombreInput = document.getElementById('nombre_aula');
-            const idInput = document.getElementById('id_aula');
+            const nombreInput = document.getElementById('nombre');
+            const vistaPrevia = document.getElementById('vista-previa');
 
-            function actualizarIdAula() {
+            function actualizarVistaPrevia() {
                 const edificio = edificioInput.value.trim().toUpperCase();
                 const nombre = nombreInput.value.trim();
                 
                 if (edificio && nombre) {
-                    idInput.value = edificio + '-' + nombre;
+                    vistaPrevia.textContent = edificio + '-' + nombre;
+                } else if (edificio) {
+                    vistaPrevia.textContent = edificio + '-[Nombre]';
+                } else if (nombre) {
+                    vistaPrevia.textContent = '[Edificio]-' + nombre;
                 } else {
-                    idInput.value = '';
+                    vistaPrevia.textContent = '[Edificio]-[Nombre]';
                 }
             }
 
-            edificioInput.addEventListener('input', actualizarIdAula);
-            nombreInput.addEventListener('input', actualizarIdAula);
+            edificioInput.addEventListener('input', actualizarVistaPrevia);
+            nombreInput.addEventListener('input', actualizarVistaPrevia);
+
+            // Inicializar vista previa
+            actualizarVistaPrevia();
         });
     </script>
 @endsection

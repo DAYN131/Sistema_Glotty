@@ -25,24 +25,6 @@
         </div>
     @endif
 
-    <!-- Información del periodo activo -->
-    @if($periodoActivo)
-    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded-r-lg">
-        <div class="flex items-center">
-            <div class="flex-shrink-0">
-                <i class="fas fa-info-circle text-blue-400 text-xl"></i>
-            </div>
-            <div class="ml-3">
-                <p class="text-blue-700 font-medium">Periodo Activo: {{ $periodoActivo->nombre }}</p>
-                <p class="text-blue-600 text-sm mt-1">
-                    Fecha: {{ \Carbon\Carbon::parse($periodoActivo->fecha_inicio)->format('d/m/Y') }} - 
-                    {{ \Carbon\Carbon::parse($periodoActivo->fecha_fin)->format('d/m/Y') }}
-                </p>
-            </div>
-        </div>
-    </div>
-    @endif
-
     <!-- Resumen de Demanda -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white p-6 rounded-2xl shadow-card border border-slate-200">
@@ -102,18 +84,20 @@
                     <h2 class="text-xl font-bold text-white">Demanda por Nivel</h2>
                 </div>
                 <div class="p-6">
-                    @foreach($demandaPorNivel as $nivel => $cantidad)
+                    @forelse($demandaPorNivel as $nivel => $cantidad)
                     <div class="flex items-center justify-between py-3 border-b border-slate-200 last:border-b-0">
                         <div class="flex items-center">
                             <span class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold mr-3">
                                 {{ $nivel }}
                             </span>
-                            <span class="font-medium text-slate-700">Nivel {{ $nivel }}</span>
+                            <div>
+                                <span class="font-medium text-slate-700">{{ \App\Models\Preregistro::NIVELES[$nivel] ?? "Nivel $nivel" }}</span>
+                                <p class="text-xs text-slate-500 mt-1">{{ $cantidad }} estudiantes</p>
+                            </div>
                         </div>
                         <div class="flex items-center space-x-4">
-                            <span class="text-slate-600 font-medium">{{ $cantidad }} estudiantes</span>
                             <span class="bg-slate-100 text-slate-700 px-2 py-1 rounded text-sm">
-                                {{ ceil($cantidad / 25) }} grupos sugeridos
+                                {{ ceil($cantidad / 20) }} grupos sugeridos
                             </span>
                             <!-- Botón para ver estudiantes -->
                             <button onclick="mostrarEstudiantesNivel({{ $nivel }})" 
@@ -123,47 +107,84 @@
                             </button>
                         </div>
                     </div>
-                    @endforeach
+                    @empty
+                    <div class="text-center py-8 text-slate-500">
+                        <i class="fas fa-users text-4xl mb-3"></i>
+                        <p>No hay preregistros para mostrar</p>
+                    </div>
+                    @endforelse
                 </div>
             </div>
 
-          <!-- Demanda por Horario - VERSIÓN OPTIMIZADA -->
-            <div class="bg-white rounded-2xl shadow-card overflow-hidden">
-                <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4">
-                    <h2 class="text-xl font-bold text-white">Demanda por Horario</h2>
-                </div>
-                <div class="p-6">
-                    @foreach($demandaPorHorario as $horarioId => $data)
-                    <div class="flex items-center justify-between py-3 border-b border-slate-200 last:border-b-0">
-                        <div class="flex items-center">
-                            <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mr-3">
-                                <i class="fas fa-clock text-orange-600"></i>
+            <!-- Demanda por Horario -->
+<div class="bg-white rounded-2xl shadow-card overflow-hidden">
+    <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4">
+        <h2 class="text-xl font-bold text-white">Demanda por Horario</h2>
+    </div>
+    <div class="p-6">
+        @forelse($demandaPorHorario as $horarioId => $data)
+        <div class="border border-slate-200 rounded-lg p-4 mb-4 last:mb-0 bg-slate-50 hover:bg-slate-100 transition-colors">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <!-- Header con nombre y tipo -->
+                    <div class="flex items-center space-x-3 mb-3">
+                        <div class="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-clock text-orange-600"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-3 mb-1">
+                                <h3 class="font-semibold text-slate-800 text-lg">{{ $data['nombre'] ?? 'Horario no disponible' }}</h3>
+                                <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                                    {{ $data['tipo'] ?? 'Sin tipo' }}
+                                </span>
                             </div>
-                            <div>
-                                <!-- Solo mostrar información esencial -->
-                                <div class="flex items-center space-x-4 text-sm text-slate-600 mb-1">
-                                    <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
-                                        {{ $data['tipo'] }}
-                                    </span>
-                                    @php
-                                        // Decodificar el JSON de días
-                                        $diasArray = is_string($data['dias'] ?? '') ? json_decode($data['dias'], true) : ($data['dias'] ?? []);
-                                        $diasArray = $diasArray ?? [];
-                                        $diasTexto = !empty($diasArray) ? implode(', ', $diasArray) : 'Días no especificados';
-                                    @endphp
-                                    <span class="font-medium">{{ $diasTexto }}</span>
+                            
+                            <!-- Información de días y horario -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                                <div class="flex items-center text-slate-600">
+                                    <i class="fas fa-calendar-day text-slate-400 mr-2 w-4"></i>
+                                    <div>
+                                        <span class="font-medium">Días:</span>
+                                        <span class="ml-2 text-slate-700">
+                                            @php
+                                                $diasArray = $data['dias'] ?? [];
+                                                $diasTexto = !empty($diasArray) ? implode(', ', $diasArray) : 'No especificado';
+                                            @endphp
+                                            {{ $diasTexto }}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="text-sm text-slate-500">
-                                    <i class="fas fa-clock mr-1"></i>
-                                    {{ $data['hora_inicio'] }} - {{ $data['hora_fin'] }}
+                                
+                                <div class="flex items-center text-slate-600">
+                                    <i class="fas fa-clock text-slate-400 mr-2 w-4"></i>
+                                    <div>
+                                        <span class="font-medium">Horario:</span>
+                                        <span class="ml-2 text-slate-700">
+                                            {{ $data['hora_inicio'] ?? '--:--' }} - {{ $data['hora_fin'] ?? '--:--' }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <span class="text-slate-600 font-medium">{{ $data['cantidad'] }} estudiantes</span>
                     </div>
-                    @endforeach
+                </div>
+                
+                <!-- Contador de estudiantes -->
+                <div class="flex flex-col items-center justify-center bg-white border border-slate-200 rounded-lg px-4 py-3 min-w-[100px] ml-4">
+                    <span class="text-2xl font-bold text-slate-800">{{ $data['cantidad'] ?? 0 }}</span>
+                    <span class="text-xs text-slate-500 font-medium">estudiantes</span>
                 </div>
             </div>
+        </div>
+        @empty
+        <div class="text-center py-8 text-slate-500 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50">
+            <i class="fas fa-calendar-times text-slate-400 text-4xl mb-3"></i>
+            <p class="text-slate-500 text-lg mb-2">No hay horarios con demanda</p>
+            <p class="text-slate-400 text-sm">Los estudiantes aún no han seleccionado horarios preferidos</p>
+        </div>
+        @endforelse
+    </div>
+</div>
         </div>
 
         <!-- Columna Derecha: Grupos Sugeridos y Creación Rápida -->
@@ -175,11 +196,11 @@
                 <div class="p-6">
                     <div class="mb-4">
                         <p class="text-slate-600 text-sm mb-3">
-                            Basado en la demanda actual, se sugieren los siguientes grupos (mínimo 25 estudiantes por grupo):
+                            Basado en la demanda actual, se sugieren los siguientes grupos (mínimo 20 estudiantes por grupo):
                         </p>
                     </div>
 
-                    @foreach($gruposSugeridos as $sugerencia)
+                    @forelse($gruposSugeridos as $sugerencia)
                     <div class="border border-slate-200 rounded-xl p-4 mb-4 bg-slate-50">
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center">
@@ -187,7 +208,7 @@
                                     {{ $sugerencia['nivel'] }}
                                 </span>
                                 <div>
-                                    <h4 class="font-semibold text-slate-800">Nivel {{ $sugerencia['nivel'] }}</h4>
+                                    <h4 class="font-semibold text-slate-800">{{ $sugerencia['descripcion_nivel'] }}</h4>
                                     <p class="text-sm text-slate-500">{{ $sugerencia['estudiantes'] }} estudiantes</p>
                                 </div>
                             </div>
@@ -197,137 +218,39 @@
                         </div>
                         
                         <!-- Horarios más demandados para este nivel -->
-                        <div class="flex items-center space-x-4 text-sm text-slate-600 mb-1">
-                                    <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
-                                        {{ $data['tipo'] }}
+                        @if(isset($sugerencia['horarios_populares']) && count($sugerencia['horarios_populares']) > 0)
+                        <div class="mb-3">
+                            <p class="text-sm text-slate-600 mb-2">Horarios más solicitados:</p>
+                            <div class="space-y-2">
+                                @foreach($sugerencia['horarios_populares'] as $horario)
+                                <div class="flex items-center justify-between text-xs bg-white px-3 py-2 rounded border">
+                                    <span class="font-medium">{{ $horario['nombre'] ?? 'Horario no disponible' }}</span>
+                                    <span class="bg-green-100 text-green-700 px-2 py-1 rounded">
+                                        {{ $horario['cantidad'] ?? 0 }} est.
                                     </span>
-                                    @php
-                                        // Decodificar el JSON de días
-                                        $diasArray = is_string($data['dias'] ?? '') ? json_decode($data['dias'], true) : ($data['dias'] ?? []);
-                                        $diasArray = $diasArray ?? [];
-                                        $diasTexto = !empty($diasArray) ? implode(', ', $diasArray) : 'Días no especificados';
-                                    @endphp
-                                    <span class="font-medium">{{ $diasTexto }}</span>
                                 </div>
-                                <div class="text-sm text-slate-500">
-                                    <i class="fas fa-clock mr-1"></i>
-                                    {{ $data['hora_inicio'] }} - {{ $data['hora_fin'] }}
-                                </div>
-
-                        <!-- Acciones rápidas -->
-                        <div class="flex space-x-2">
-                            <button onclick="mostrarModalCrearGrupo({{ $sugerencia['nivel'] }})" 
-                                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center transition-colors">
-                                <i class="fas fa-plus-circle mr-2"></i>
-                                Crear Grupo
-                            </button>
-                            <a href="{{ route('coordinador.grupos.create') }}?nivel={{ $sugerencia['nivel'] }}" 
-                               class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg text-sm flex items-center transition-colors">
-                                <i class="fas fa-external-link-alt mr-2"></i>
-                                Crear con Opciones
-                            </a>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
-                    @endforeach
+                        @endif
 
-                    @if(empty($gruposSugeridos))
+                        
+                    </div>
+                    @empty
                     <div class="text-center py-8 text-slate-500">
                         <i class="fas fa-chart-pie text-4xl mb-3"></i>
                         <p>No hay suficiente demanda para sugerir grupos</p>
+                        <p class="text-sm mt-2">Se requieren al menos 20 estudiantes por nivel</p>
                     </div>
-                    @endif
+                    @endforelse
                 </div>
             </div>
 
-            <!-- Acciones Rápidas -->
-            <div class="bg-white rounded-2xl shadow-card overflow-hidden mt-6">
-                <div class="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
-                    <h2 class="text-xl font-bold text-white">Acciones Rápidas</h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 gap-3">
-                        <a href="{{ route('coordinador.preregistros.index') }}" 
-                           class="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg flex items-center transition-colors">
-                            <i class="fas fa-list mr-3 text-blue-600"></i>
-                            <div>
-                                <p class="font-medium">Ver Todos los Preregistros</p>
-                                <p class="text-sm">Gestionar preregistros individualmente</p>
-                            </div>
-                        </a>
-                        
-                        <a href="{{ route('coordinador.grupos.index') }}" 
-                           class="bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center transition-colors">
-                            <i class="fas fa-users mr-3 text-green-600"></i>
-                            <div>
-                                <p class="font-medium">Gestionar Grupos Existentes</p>
-                                <p class="text-sm">Ver y editar grupos actuales</p>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
 
-<!-- Modal para creación rápida de grupo - VERSIÓN CORREGIDA -->
-<div id="modalCrearGrupo" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-2xl p-6 w-full max-w-md mx-4">
-        <h3 class="text-xl font-bold text-slate-800 mb-4">Crear Grupo Rápido</h3>
-        <form id="formCrearGrupoRapido" action="" method="POST">
-            @csrf
-            <input type="hidden" name="nivel_ingles" id="nivelGrupo">
-            <input type="hidden" name="periodo_id" value="{{ $periodoActivo->id ?? '' }}">
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Letra del Grupo *</label>
-                    <select name="letra_grupo" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                        <option value="">Selecciona letra</option>
-                        <option value="A">A</option>
-                        <option value="B">B</option>
-                        <option value="C">C</option>
-                        <option value="D">D</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Horario *</label>
-                    <select name="horario_id" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                        <option value="">Selecciona horario</option>
-                        @foreach($horariosDisponibles as $horario)
-                            @php
-                                $diasArray = is_string($horario->dias) ? json_decode($horario->dias, true) : $horario->dias;
-                                $diasArray = $diasArray ?? [];
-                                $diasTexto = !empty($diasArray) ? implode(', ', $diasArray) : 'Días no especificados';
-                            @endphp
-                            <option value="{{ $horario->id }}">
-                                {{ $horario->tipo }} - {{ $diasTexto }} ({{ $horario->hora_inicio->format('H:i') }}-{{ $horario->hora_fin->format('H:i') }})
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Capacidad Máxima *</label>
-                    <input type="number" name="capacidad_maxima" value="25" min="20" max="50" 
-                           class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                    <p class="mt-1 text-xs text-slate-500">Mínimo 20, máximo 50 estudiantes</p>
-                </div>
-            </div>
-            
-            <div class="flex space-x-3 mt-6">
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition-colors">
-                    <i class="fas fa-plus-circle mr-2"></i>
-                    Crear Grupo
-                </button>
-                <button type="button" onclick="cerrarModalGrupo()" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-lg transition-colors">
-                    Cancelar
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
 
 <!-- Modal para ver estudiantes por nivel -->
 <div id="modalEstudiantes" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
@@ -359,15 +282,9 @@
 
 @push('scripts')
 <script>
-// Funciones para el modal de creación de grupo
-function mostrarModalCrearGrupo(nivel) {
-    document.getElementById('nivelGrupo').value = nivel;
-    document.getElementById('modalCrearGrupo').classList.remove('hidden');
-}
 
-function cerrarModalGrupo() {
-    document.getElementById('modalCrearGrupo').classList.add('hidden');
-}
+
+
 
 // Funciones para el modal de estudiantes
 function mostrarEstudiantesNivel(nivel) {
@@ -394,7 +311,7 @@ function mostrarEstudiantesNivel(nivel) {
             return response.json();
         })
         .then(data => {
-            mostrarListaEstudiantes(data.estudiantes, data.total);
+            mostrarListaEstudiantes(data.estudiantes, data.total, data.nivel);
         })
         .catch(error => {
             console.error('Error:', error);
@@ -408,11 +325,12 @@ function mostrarEstudiantesNivel(nivel) {
         });
 }
 
-function mostrarListaEstudiantes(estudiantes, total) {
+function mostrarListaEstudiantes(estudiantes, total, nivel) {
     const lista = document.getElementById('listaEstudiantes');
     const totalElement = document.getElementById('totalEstudiantes');
     
     totalElement.textContent = `Total: ${total} estudiantes`;
+    document.getElementById('modalTitulo').textContent = `Estudiantes - ${nivel}`;
     
     if (estudiantes.length === 0) {
         lista.innerHTML = `
@@ -430,44 +348,42 @@ function mostrarListaEstudiantes(estudiantes, total) {
                 <div class="flex-1">
                     <!-- Header con nombre y número de control -->
                     <div class="flex items-center space-x-3 mb-3">
-                        <h4 class="font-semibold text-slate-800">${estudiante.nombre}</h4>
-                        <span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">${estudiante.numero_control}</span>
+                        <h4 class="font-semibold text-slate-800">${estudiante.nombre || 'Nombre no disponible'}</h4>
+                        <span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">${estudiante.numero_control || 'N/C'}</span>
+                        <span class="bg-${estudiante.pago_estado === 'pagado' ? 'green' : 'yellow'}-100 text-${estudiante.pago_estado === 'pagado' ? 'green' : 'yellow'}-700 text-xs px-2 py-1 rounded">
+                           Pago:  ${estudiante.pago_estado === 'pagado' ? 'Pagado' : 'Pendiente'}
+                        </span>
+                        ${estudiante.puede_ser_asignado ? `
+                        <span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded">Listo para asignar</span>
+                        ` : ''}
                     </div>
                     
                     <!-- Información académica -->
                     <div class="flex items-center space-x-4 text-sm text-slate-600 mb-3">
                         <div class="flex items-center">
+                            <i class="fas fa-envelope text-slate-400 mr-2"></i>
+                            <span>${estudiante.correo || 'Sin correo'}</span>
+                        </div>
+                        <div class="flex items-center">
                             <i class="fas fa-graduation-cap text-slate-400 mr-2"></i>
                             <span>${estudiante.especialidad || 'Sin especialidad'}</span>
-                            ${estudiante.semestre_carrera ? `
+                            ${estudiante.semestre_actual ? `
                             <span class="ml-2 bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-xs">
-                                ${estudiante.semestre_carrera} semestre
+                                Semestre: ${estudiante.semestre_actual}
                             </span>
                             ` : ''}
                         </div>
                     </div>
                     
                     <!-- Información del horario -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                        <!-- Tipo de horario -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <!-- Horario preferido -->
                         <div class="flex items-center">
-                            <i class="fas fa-tag text-slate-400 mr-2 w-4"></i>
-                            <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
-                                ${estudiante.tipo_horario}
-                            </span>
+                            <i class="fas fa-clock text-slate-400 mr-2 w-4"></i>
+                            <span class="font-medium">${estudiante.horario_preferido || 'No especificado'}</span>
                         </div>
                         
-                        <!-- Días -->
-                        <div class="flex items-center">
-                            <i class="fas fa-calendar-day text-slate-400 mr-2 w-4"></i>
-                            <span class="font-medium">${estudiante.dias_horario}</span>
-                        </div>
-                        
-                        <!-- Horas -->
-                         <div class="text-sm text-slate-500">
-                                    <i class="fas fa-clock mr-1"></i>
-                                    {{ $data['hora_inicio'] }} - {{ $data['hora_fin'] }}
-                        </div>
+                       
                     </div>
                 </div>
             </div>
@@ -480,14 +396,12 @@ function cerrarModalEstudiantes() {
 }
 
 // Cerrar modales al hacer click fuera
-document.getElementById('modalCrearGrupo').addEventListener('click', function(e) {
-    if (e.target === this) {
-        cerrarModalGrupo();
-    }
-});
+document.addEventListener('click', function(e) {
+   
+    const modalEstudiantes = document.getElementById('modalEstudiantes');
 
-document.getElementById('modalEstudiantes').addEventListener('click', function(e) {
-    if (e.target === this) {
+    
+    if (modalEstudiantes && e.target === modalEstudiantes) {
         cerrarModalEstudiantes();
     }
 });
@@ -500,36 +414,21 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Funciones para el modal de creación de grupo - MEJORADO
-function mostrarModalCrearGrupo(nivel) {
-    document.getElementById('nivelGrupo').value = nivel;
-    
-    // Actualizar título con el nivel
-    const titulo = document.querySelector('#modalCrearGrupo h3');
-    titulo.textContent = `Crear Grupo Rápido - Nivel ${nivel}`;
-    
-    document.getElementById('modalCrearGrupo').classList.remove('hidden');
-}
-
-function cerrarModalGrupo() {
-    document.getElementById('modalCrearGrupo').classList.add('hidden');
-}
-
 // Validación del formulario
-document.getElementById('formCrearGrupoRapido').addEventListener('submit', function(e) {
-    const letra = document.querySelector('select[name="letra_grupo"]').value;
-    const horario = document.querySelector('select[name="horario_id"]').value;
-    
-    if (!letra || !horario) {
-        e.preventDefault();
-        alert('Por favor, completa todos los campos requeridos.');
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formCrearGrupoRapido');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const letra = document.querySelector('select[name="letra_grupo"]').value;
+            const horario = document.querySelector('select[name="horario_id"]').value;
+            
+            if (!letra || !horario) {
+                e.preventDefault();
+                alert('Por favor, completa todos los campos requeridos.');
+            }
+        });
     }
 });
-
 </script>
-
-
-
 @endpush
-
 @endsection

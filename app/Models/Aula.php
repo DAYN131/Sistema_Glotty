@@ -1,58 +1,129 @@
 <?php
+// app/Models/Aula.php
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Aula extends Model
 {
-    protected $primaryKey = 'id_aula';
-    public $incrementing = false;
-    protected $keyType = 'string';
-
-    const TIPO_AULA = [
-        'regular' => 'Regular',
-        'laboratorio' => 'Laboratorio'
-    ];
+    use HasFactory;
 
     protected $fillable = [
-        'id_aula',
+        'nombre',
         'edificio',
-        'nombre_aula', // Cambiar numero_aula por nombre_aula
-        'capacidad', 
-        'tipo_aula'
+        'capacidad',
+        'tipo',
+        'equipamiento',
+        'disponible'
     ];
 
-    // Relación con grupos
-    public function grupos()
+    protected $casts = [
+        'disponible' => 'boolean',
+        'capacidad' => 'integer'
+    ];
+
+    // Tipos de aula disponibles
+    const TIPOS_AULA = [
+        'regular' => 'Aula Regular',
+        'laboratorio' => 'Laboratorio',
+        'computo' => 'Sala de Cómputo',
+        'audiovisual' => 'Aula Audiovisual',
+    ];
+
+    // Relación con disponibilidad por horario
+    public function disponibilidadHorarios()
     {
-        return $this->hasMany(Grupo::class, 'aula_id', 'id_aula');
+        return $this->hasMany(DisponibilidadAula::class);
     }
 
-    // Hook para generar id_aula automáticamente
-    protected static function boot()
+    // Relación con grupos (a través de disponibilidad)
+    public function grupos()
     {
-        parent::boot();
+        return $this->hasManyThrough(Grupo::class, DisponibilidadAula::class, 'aula_id', 'id', 'id', 'grupo_id');
+    }
 
-        static::creating(function ($aula) {
-            if (empty($aula->id_aula)) {
-                $aula->id_aula = strtoupper(trim($aula->edificio)) . '-' . trim($aula->nombre_aula);
-            }
-        });
+    // Scope para aulas disponibles
+    public function scopeDisponibles($query)
+    {
+        return $query->where('disponible', true);
+    }
 
-        static::updating(function ($aula) {
-            // Si cambia el edificio o nombre, actualizar id_aula
-            if ($aula->isDirty(['edificio', 'nombre_aula'])) {
-                $nuevo_id = strtoupper(trim($aula->edificio)) . '-' . trim($aula->nombre_aula);
-                
-                // Verificar que no exista otro aula con el mismo ID
-                if ($nuevo_id !== $aula->getOriginal('id_aula') && 
-                    self::where('id_aula', $nuevo_id)->exists()) {
-                    return false; // Prevenir la actualización
-                }
-                
-                $aula->id_aula = $nuevo_id;
-            }
-        });
+    // Scope por tipo de aula
+    public function scopePorTipo($query, $tipo)
+    {
+        return $query->where('tipo', $tipo);
+    }
+
+    // Scope por edificio
+    public function scopePorEdificio($query, $edificio)
+    {
+        return $query->where('edificio', $edificio);
+    }
+
+    // Scope que combina múltiples filtros
+    public function scopeFiltrar($query, $filtros)
+    {
+        if (isset($filtros['edificio']) && $filtros['edificio']) {
+            $query->where('edificio', $filtros['edificio']);
+        }
+        
+        if (isset($filtros['tipo']) && $filtros['tipo']) {
+            $query->where('tipo', $filtros['tipo']);
+        }
+        
+        if (isset($filtros['disponible']) && $filtros['disponible'] !== '') {
+            $query->where('disponible', $filtros['disponible']);
+        }
+        
+        return $query;
+    }
+
+    // Verificar si está disponible en un horario específico
+    public function estaDisponibleEnHorario($horarioPeriodoId)
+    {
+        if (!$this->disponible) {
+            return false; // No disponible globalmente
+        }
+
+        $disponibilidad = $this->disponibilidadHorarios()
+            ->where('horario_periodo_id', $horarioPeriodoId)
+            ->first();
+
+        return $disponibilidad ? $disponibilidad->disponible : true;
+    }
+
+    // Accesor para nombre completo (sin redundancia)
+    public function getNombreCompletoAttribute()
+    {
+        return "{$this->edificio}-{$this->nombre}";
+    }
+
+    // Accesor para tipo formateado
+    public function getTipoFormateadoAttribute()
+    {
+        return self::TIPOS_AULA[$this->tipo] ?? $this->tipo;
+    }
+
+    // Accesor para mostrar información resumida
+    public function getInfoResumidaAttribute()
+    {
+        return "{$this->nombre_completo} - {$this->tipo_formateado} ({$this->capacidad} pers.)";
+    }
+
+    // Método para obtener estadísticas
+    public static function obtenerEstadisticas()
+    {
+        return [
+            'total' => self::count(),
+            'disponibles' => self::where('disponible', true)->count(),
+            'por_tipo' => self::groupBy('tipo')
+                            ->selectRaw('tipo, count(*) as total')
+                            ->pluck('total', 'tipo'),
+            'por_edificio' => self::groupBy('edificio')
+                                ->selectRaw('edificio, count(*) as total')
+                                ->pluck('total', 'edificio')
+        ];
     }
 }

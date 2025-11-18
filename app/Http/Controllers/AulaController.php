@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/AulaController.php
 
 namespace App\Http\Controllers;
 
@@ -12,11 +13,34 @@ class AulaController extends Controller
     /**
      * Muestra una lista de todas las aulas.
      */
-    public function index()
+    public function index(Request $request)
     {
-        // CAMBIA numero_aula por nombre_aula
-        $aulas = Aula::orderBy('edificio')->orderBy('nombre_aula')->get();
-        return view('coordinador.aulas.index', compact('aulas'));
+        $query = Aula::query();
+        
+        // Filtro por edificio
+        if ($request->has('edificio') && $request->edificio) {
+            $query->where('edificio', $request->edificio);
+        }
+        
+        // Filtro por tipo
+        if ($request->has('tipo') && $request->tipo) {
+            $query->where('tipo', $request->tipo);
+        }
+        
+        // Filtro por disponibilidad
+        if ($request->has('disponible') && $request->disponible !== '') {
+            $query->where('disponible', $request->disponible);
+        }
+        
+        $aulas = $query->orderBy('edificio')
+                       ->orderBy('nombre')
+                       ->get();
+        
+        // Datos para los filtros
+        $edificios = Aula::distinct()->pluck('edificio')->sort();
+        $tiposAula = Aula::TIPOS_AULA;
+                       
+        return view('coordinador.aulas.index', compact('aulas', 'edificios', 'tiposAula'));
     }
 
     /**
@@ -24,7 +48,7 @@ class AulaController extends Controller
      */
     public function create()
     {
-        $tiposAula = Aula::TIPO_AULA;
+        $tiposAula = Aula::TIPOS_AULA;
         return view('coordinador.aulas.create', compact('tiposAula'));
     }
 
@@ -33,121 +57,121 @@ class AulaController extends Controller
      */
     public function store(Request $request)
     {
-        // Reglas de validación - CAMBIA numero_aula por nombre_aula
         $validatedData = $request->validate([
-            'edificio' => 'required|string|max:10',
-            'nombre_aula' => 'required|string|max:20', // Cambiado
+            'nombre' => 'required|string|max:100',
+            'edificio' => 'required|string|max:50',
             'capacidad' => 'required|integer|min:1',
-            'tipo_aula' => ['required', Rule::in(array_keys(Aula::TIPO_AULA))],
+            'tipo' => ['required', Rule::in(array_keys(Aula::TIPOS_AULA))],
+            'equipamiento' => 'nullable|string|max:500',
+            'disponible' => 'boolean'
         ]);
 
-        // 1. Generar el ID único a partir de los campos para la verificación
-        $id_aula_generado = strtoupper(trim($validatedData['edificio'])) . '-' . trim($validatedData['nombre_aula']);
-
-        // 2. Verificar unicidad de la clave primaria generada (id_aula)
-        if (Aula::where('id_aula', $id_aula_generado)->exists()) {
-            return back()->withErrors([
-                'edificio' => "❌ La combinación {$id_aula_generado} ya existe. Cambia el edificio o el nombre del aula.",
-                'nombre_aula' => "❌ La combinación {$id_aula_generado} ya existe. Cambia el edificio o el nombre del aula.", // Cambiado
-            ])->withInput();
-        }
-
         try {
-            // El hook 'creating' del modelo se encargará de asignar id_aula.
+            DB::beginTransaction();
+
             Aula::create($validatedData);
 
+            DB::commit();
+
             return redirect()->route('coordinador.aulas.index')
-                ->with('success', '✅ Aula creada exitosamente: ' . $id_aula_generado);
+                ->with('success', '✅ Aula creada exitosamente.');
 
         } catch (\Exception $e) {
-            return back()->with('error', '❌ Error al guardar el aula: ' . $e->getMessage())->withInput();
+            DB::rollBack();
+            
+            return back()->with('error', '❌ Error al crear el aula: ' . $e->getMessage())
+                        ->withInput();
         }
     }
 
     /**
      * Muestra el formulario para editar un aula específica.
      */
-    public function edit($id_aula)
+    public function edit(Aula $aula)
     {
-        $aula = Aula::where('id_aula', $id_aula)->firstOrFail();
-        $tiposAula = Aula::TIPO_AULA;
+        $tiposAula = Aula::TIPOS_AULA;
         return view('coordinador.aulas.edit', compact('aula', 'tiposAula'));
     }
 
     /**
      * Actualiza un aula específica en la base de datos.
      */
-    public function update(Request $request, $id_aula)
+    public function update(Request $request, Aula $aula)
     {
-        $aula = Aula::where('id_aula', $id_aula)->firstOrFail();
-        
-        // Reglas de validación - CAMBIA numero_aula por nombre_aula
         $validatedData = $request->validate([
-            'edificio' => 'required|string|max:10',
-            'nombre_aula' => 'required|string|max:20', // Cambiado
+            'nombre' => 'required|string|max:100',
+            'edificio' => 'required|string|max:50',
             'capacidad' => 'required|integer|min:1',
-            'tipo_aula' => ['required', Rule::in(array_keys(Aula::TIPO_AULA))],
+            'tipo' => ['required', Rule::in(array_keys(Aula::TIPOS_AULA))],
+            'equipamiento' => 'nullable|string|max:500',
+            'disponible' => 'boolean'
         ]);
 
-        // 1. Generar el nuevo ID potencial
-        $nuevo_id_aula = strtoupper(trim($validatedData['edificio'])) . '-' . trim($validatedData['nombre_aula']);
-
-        // 2. Verificar si el nuevo ID ya existe y no es el ID actual del aula
-        if ($nuevo_id_aula !== $aula->id_aula && Aula::where('id_aula', $nuevo_id_aula)->exists()) {
-            return back()->withErrors([
-                'edificio' => "❌ La combinación {$nuevo_id_aula} ya existe. No se pudo actualizar.",
-                'nombre_aula' => "❌ La combinación {$nuevo_id_aula} ya existe. No se pudo actualizar.", // Cambiado
-            ])->withInput();
-        }
-
         try {
-            // El hook 'updating' del modelo se encargará de actualizar id_aula si es necesario.
+            DB::beginTransaction();
+
             $aula->update($validatedData);
+
+            DB::commit();
 
             return redirect()->route('coordinador.aulas.index')
                 ->with('success', '✅ Aula actualizada exitosamente.');
 
         } catch (\Exception $e) {
-            return back()->with('error', '❌ Error al actualizar el aula: ' . $e->getMessage())->withInput();
+            DB::rollBack();
+            
+            return back()->with('error', '❌ Error al actualizar el aula: ' . $e->getMessage())
+                        ->withInput();
         }
     }
 
     /**
      * Elimina un aula de la base de datos.
      */
-    public function destroy($id_aula)
+    public function destroy(Aula $aula)
     {
         try {
-            \Log::info('=== INICIO DESTROY AULA ===');
-            \Log::info('ID Aula recibido: ' . $id_aula);
-
-            // Buscar el aula por id_aula
-            $aula = Aula::where('id_aula', $id_aula)->firstOrFail();
-            \Log::info('Aula encontrada: ' . $aula->id_aula);
-
-            // 1. Verificar si el aula tiene grupos asignados
-            $gruposCount = $aula->grupos()->count();
-            \Log::info('Número de grupos asociados: ' . $gruposCount);
-
-            if ($gruposCount > 0) {
-                \Log::info('NO se puede eliminar - tiene grupos asociados');
+            // Verificar si el aula tiene grupos asignados
+            if ($aula->grupos()->count() > 0) {
                 return redirect()->route('coordinador.aulas.index')
-                    ->with('error', '❌ No se puede eliminar el aula. Primero elimina los grupos asociados a esta aula.');
+                    ->with('error', '❌ No se puede eliminar el aula. Tiene grupos asignados.');
             }
 
-            \Log::info('Procediendo a eliminar el aula...');
+            // Verificar si tiene disponibilidad asociada
+            if ($aula->disponibilidadHorarios()->count() > 0) {
+                return redirect()->route('coordinador.aulas.index')
+                    ->with('error', '❌ No se puede eliminar el aula. Tiene horarios asignados.');
+            }
 
-            // 2. Eliminar el aula
             $aula->delete();
-            \Log::info('Aula eliminada exitosamente');
 
             return redirect()->route('coordinador.aulas.index')
-                ->with('success', '🗑️ Aula ' . $aula->id_aula . ' eliminada correctamente.');
+                ->with('success', '🗑️ Aula eliminada correctamente.');
 
         } catch (\Exception $e) {
-            \Log::error('Error al eliminar aula: ' . $e->getMessage());
             return redirect()->route('coordinador.aulas.index')
                 ->with('error', '❌ Error al eliminar el aula: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cambia el estado disponible/inactivo del aula.
+     */
+    public function toggleDisponible(Aula $aula)
+    {
+        try {
+            $aula->update([
+                'disponible' => !$aula->disponible
+            ]);
+
+            $estado = $aula->disponible ? 'disponible' : 'no disponible';
+            
+            return redirect()->route('coordinador.aulas.index')
+                ->with('success', "✅ Aula marcada como {$estado}.");
+
+        } catch (\Exception $e) {
+            return redirect()->route('coordinador.aulas.index')
+                ->with('error', '❌ Error al cambiar estado del aula.');
         }
     }
 }

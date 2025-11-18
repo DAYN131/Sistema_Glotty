@@ -1,119 +1,236 @@
 <?php
-
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
-// Importación de modelos para las relaciones
-use App\Models\Usuario;
-use App\Models\Periodo;
-use App\Models\Horario;
-use App\Models\Grupo;
-use App\Models\Calificacion;
 
 class Preregistro extends Model
 {
-    // 1. Configuración de la tabla
-    protected $table = 'preregistros';
+    use HasFactory;
 
-    // 2. Definición de Constantes para ENUMs
-
-    // Correspondiente al campo 'estado'
-    const ESTADO = [
-        'preregistrado' => 'preregistrado', // Solicitud inicial
-        'asignado' => 'asignado',           // Grupo asignado por coordinador
-        'cursando' => 'cursando',           // Ya inscrito formalmente (debe estar pagado)
-        'finalizado' => 'finalizado',       // Curso concluido
-        'cancelado' => 'cancelado',         // Cancelado por el alumno o coordinador
-    ];
-
-    // Correspondiente al campo 'pagado'
-    const PAGO = [
-        'pendiente' => 'pendiente',
-        'pagado' => 'pagado',
-    ];
-
-    // 3. Campos Asignables Masivamente (fillable)
     protected $fillable = [
         'usuario_id',
         'periodo_id',
         'nivel_solicitado',
-        'horario_solicitado_id',
+        'horario_preferido_id',
         'semestre_carrera',
         'grupo_asignado_id',
         'estado',
-        'pagado',
+        'pago_estado'
     ];
 
-    // 4. Casting de Atributos
     protected $casts = [
-        'nivel_solicitado' => 'integer',
-        'usuario_id' => 'integer',
-        'periodo_id' => 'integer',
-        'horario_solicitado_id' => 'integer',
-        'grupo_asignado_id' => 'integer',
+        'nivel_solicitado' => 'integer'
     ];
 
-    // 5. Relaciones de la Base de Datos
+    // ESTADOS DEL PREREGISTRO
+    const ESTADOS = [
+        'pendiente' => 'Pendiente de Asignación',
+        'asignado' => 'Asignado a Grupo',
+        'cursando' => 'Cursando',
+        'finalizado' => 'Finalizado',
+        'cancelado' => 'Cancelado'
+    ];
 
-    /**
-     * Relación con la tabla 'usuarios' (el alumno que hace el pre-registro).
-     */
-    public function usuario(): BelongsTo
+    // Estados de pago - ACTUALIZADO CON PRÓRROGA
+    const PAGO_ESTADOS = [
+        'pendiente' => 'Pendiente de Pago',
+        'prorroga' => 'En Prórroga', // ✅ NUEVO
+        'pagado' => 'Pagado',
+        'rechazado' => 'Pago Rechazado'
+    ];
+
+    // Niveles disponibles
+    const NIVELES = [
+        1 => 'Nivel 1 - Principiante',
+        2 => 'Nivel 2 - Básico', 
+        3 => 'Nivel 3 - Intermedio',
+        4 => 'Nivel 4 - Avanzado',
+        5 => 'Nivel 5 - Conversación'
+    ];
+
+    // Relaciones
+    public function usuario()
     {
-        return $this->belongsTo(Usuario::class, 'usuario_id');
+        return $this->belongsTo(Usuario::class);
     }
 
-    /**
-     * Relación con la tabla 'periodos'.
-     */
-    public function periodo(): BelongsTo
+    public function periodo()
     {
-        return $this->belongsTo(Periodo::class, 'periodo_id');
+        return $this->belongsTo(Periodo::class);
     }
 
-    /**
-     * Relación con la tabla 'horarios' (la preferencia solicitada).
-     */
-    public function horarioSolicitado(): BelongsTo
+    public function horarioPreferido()
     {
-        return $this->belongsTo(Horario::class, 'horario_solicitado_id');
+        return $this->belongsTo(HorarioPeriodo::class, 'horario_preferido_id');
     }
 
-    /**
-     * Relación con la tabla 'grupos' (el grupo asignado).
-     */
-    public function grupoAsignado(): BelongsTo
+    public function grupoAsignado()
     {
-        // El campo grupo_asignado_id puede ser NULL
         return $this->belongsTo(Grupo::class, 'grupo_asignado_id');
     }
 
-    /**
-     * Relación con la tabla 'calificaciones'.
-     */
-    public function calificacion()
+    // Scopes útiles - ACTUALIZADOS
+    public function scopePendientes($query)
     {
-        // Un preregistro tiene una calificación (si está cursando/finalizado)
-        return $this->hasOne(Calificacion::class, 'preregistro_id');
+        return $query->where('estado', 'pendiente');
     }
 
-    // 6. Métodos de ayuda/alcances personalizados (Scopes)
-
-    /**
-     * Scope para obtener pre-registros pendientes de asignación.
-     */
-    public function scopePendientesAsignacion($query)
-    {
-        return $query->where('estado', self::ESTADO['preregistrado']);
-    }
-
-    /**
-     * Scope para obtener pre-registros pagados.
-     */
     public function scopePagados($query)
     {
-        return $query->where('pagado', self::PAGO['pagado']);
+        return $query->where('pago_estado', 'pagado');
+    }
+
+    public function scopePuedenAsignarse($query)
+    {
+        return $query->where('estado', 'pendiente')
+                    ->whereIn('pago_estado', ['pagado', 'prorroga']); // ✅ INCLUYE PRÓRROGA
+    }
+
+    public function scopeActivos($query)
+    {
+        return $query->whereIn('estado', ['pendiente', 'asignado', 'cursando']);
+    }
+
+    public function scopeConProrroga($query)
+    {
+        return $query->where('pago_estado', 'prorroga');
+    }
+
+    // Accesores
+    public function getNivelFormateadoAttribute()
+    {
+        return self::NIVELES[$this->nivel_solicitado] ?? "Nivel {$this->nivel_solicitado}";
+    }
+
+    public function getEstadoFormateadoAttribute()
+    {
+        return self::ESTADOS[$this->estado] ?? $this->estado;
+    }
+
+    public function getPagoEstadoFormateadoAttribute()
+    {
+        return self::PAGO_ESTADOS[$this->pago_estado] ?? $this->pago_estado;
+    }
+
+    // ✅ MÉTODOS DE NEGOCIO ACTUALIZADOS CON PRÓRROGA
+
+    /**
+     * Puede ser asignado a grupo si:
+     * - Está pendiente
+     * - Pago está 'pagado' O 'prorroga' ✅
+     * - El periodo acepta preregistros
+     */
+    public function puedeSerAsignado()
+    {
+        return $this->estado === 'pendiente' && 
+               in_array($this->pago_estado, ['pagado', 'prorroga']) && // ✅ ACTUALIZADO
+               $this->periodo->aceptaPreRegistros();
+    }
+
+    /**
+     * Está listo para cursar (tiene grupo y pago en orden)
+     */
+    public function estaListoParaCursar()
+    {
+        return $this->estado === 'asignado' && 
+               in_array($this->pago_estado, ['pagado', 'prorroga']); // ✅ ACTUALIZADO
+    }
+
+    /**
+     * Puede ser cancelado solo si:
+     * - Está pendiente o asignado
+     * - El periodo no ha finalizado
+     */
+    public function puedeSerCancelado()
+    {
+        return in_array($this->estado, ['pendiente', 'asignado']) &&
+               !$this->periodo->estaFinalizado();
+    }
+
+    /**
+     * Está cursando activamente
+     */
+    public function estaCursando()
+    {
+        return $this->estado === 'cursando';
+    }
+
+    /**
+     * Ha finalizado el curso
+     */
+    public function estaFinalizado()
+    {
+        return $this->estado === 'finalizado';
+    }
+
+    /**
+     * Está cancelado
+     */
+    public function estaCancelado()
+    {
+        return $this->estado === 'cancelado';
+    }
+
+    /**
+     * Tiene prórroga activa
+     */
+    public function tieneProrroga()
+    {
+        return $this->pago_estado === 'prorroga'; // ✅ NUEVO MÉTODO
+    }
+
+    /**
+     * Verifica si el preregistro está vencido (no pagado a tiempo)
+     * Ahora solo aplica para 'pendiente', no para 'prorroga'
+     */
+    public function estaVencido()
+    {
+        return $this->pago_estado === 'pendiente' && 
+               $this->created_at->diffInDays(now()) > 7; // 7 días para pagar (solo pendientes)
+    }
+
+    /**
+     * Cambios automáticos de estado cuando el periodo cambia
+     */
+    public function sincronizarConPeriodo()
+    {
+        if ($this->periodo->estaEnCurso() && $this->estaListoParaCursar()) {
+            $this->update(['estado' => 'cursando']);
+        }
+        
+        if ($this->periodo->estaFinalizado() && $this->estado === 'cursando') {
+            $this->update(['estado' => 'finalizado']);
+        }
+    }
+
+    /**
+     * TRANSICIONES PERMITIDAS para preregistros
+     */
+    public function puedeCambiarA($nuevoEstado)
+    {
+        $transicionesPermitidas = [
+            'pendiente' => ['asignado', 'cancelado'],
+            'asignado' => ['cursando', 'cancelado'],
+            'cursando' => ['finalizado'],
+            'finalizado' => [],
+            'cancelado' => []
+        ];
+
+        return in_array($nuevoEstado, $transicionesPermitidas[$this->estado]);
+    }
+
+    /**
+     * Para mostrar colores en la interfaz
+     */
+    public function getColorPagoAttribute()
+    {
+        return match($this->pago_estado) {
+            'pendiente' => 'yellow',
+            'prorroga' => 'blue', // ✅ NUEVO COLOR
+            'pagado' => 'green',
+            'rechazado' => 'red',
+            default => 'gray'
+        };
     }
 }

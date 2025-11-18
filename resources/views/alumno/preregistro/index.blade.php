@@ -61,7 +61,7 @@
             <div>
                 <p class="text-sm text-gray-500">Activos</p>
                 <p class="text-2xl font-bold text-green-700">
-                    {{ $preregistros->whereIn('estado', ['preregistrado', 'asignado', 'cursando'])->count() }}
+                    {{ $preregistros->whereIn('estado', ['pendiente', 'asignado', 'cursando'])->count() }}
                 </p>
             </div>
         </div>
@@ -119,6 +119,9 @@
                     <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Estado
                     </th>
+                    <th scope="col" class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Pago
+                    </th>
                    
                 </tr>
             </thead>
@@ -128,7 +131,7 @@
                     <!-- Celda Periodo -->
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="font-medium text-gray-900">
-                            {{ $preregistro->periodo->nombre ?? 'N/A' }}
+                            {{ $preregistro->periodo->nombre_periodo ?? 'N/A' }}
                         </div>
                         <div class="text-xs text-gray-500 mt-1">
                             <i class="fas fa-calendar mr-1"></i>
@@ -141,23 +144,27 @@
                         <span class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">
                             Nivel {{ $preregistro->nivel_solicitado }}
                         </span>
+                      
                     </td>
                     
-                    <!-- Celda Horario Preferido - MEJORADA -->
+                    <!-- Celda Horario Preferido -->
                     <td class="px-6 py-4">
-                        @if($preregistro->horarioSolicitado)
+                        @if($preregistro->horarioPreferido && $preregistro->horarioPreferido->horarioBase)
                             @php
-                                // Procesar los días del horario (igual que en la vista create)
-                                $diasArray = [];
+                                $horarioBase = $preregistro->horarioPreferido->horarioBase;
                                 
-                                if (is_array($preregistro->horarioSolicitado->dias)) {
-                                    $diasArray = $preregistro->horarioSolicitado->dias;
-                                } elseif (is_string($preregistro->horarioSolicitado->dias)) {
-                                    $decoded = json_decode($preregistro->horarioSolicitado->dias, true);
-                                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                                        $diasArray = $decoded;
+                                // Procesar los días del horario
+                                $diasArray = [];
+                                if (isset($horarioBase->dias)) {
+                                    if (is_string($horarioBase->dias)) {
+                                        $decoded = json_decode($horarioBase->dias, true);
+                                        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                                            $diasArray = $decoded;
+                                        } else {
+                                            $diasArray = array_map('trim', explode(',', $horarioBase->dias));
+                                        }
                                     } else {
-                                        $diasArray = array_map('trim', explode(',', $preregistro->horarioSolicitado->dias));
+                                        $diasArray = $horarioBase->dias ?? [];
                                     }
                                 }
                                 
@@ -165,13 +172,13 @@
                                 $diasTexto = !empty($diasArray) ? implode(', ', $diasArray) : 'No especificado';
                                 
                                 // Formatear horas
-                                $horaInicio = $preregistro->horarioSolicitado->hora_inicio instanceof \DateTime 
-                                    ? $preregistro->horarioSolicitado->hora_inicio->format('H:i') 
-                                    : (\Carbon\Carbon::parse($preregistro->horarioSolicitado->hora_inicio)->format('H:i') ?? 'N/A');
+                                $horaInicio = $horarioBase->hora_inicio instanceof \DateTime 
+                                    ? $horarioBase->hora_inicio->format('H:i') 
+                                    : (\Carbon\Carbon::parse($horarioBase->hora_inicio)->format('H:i') ?? 'N/A');
                                     
-                                $horaFin = $preregistro->horarioSolicitado->hora_fin instanceof \DateTime 
-                                    ? $preregistro->horarioSolicitado->hora_fin->format('H:i') 
-                                    : (\Carbon\Carbon::parse($preregistro->horarioSolicitado->hora_fin)->format('H:i') ?? 'N/A');
+                                $horaFin = $horarioBase->hora_fin instanceof \DateTime 
+                                    ? $horarioBase->hora_fin->format('H:i') 
+                                    : (\Carbon\Carbon::parse($horarioBase->hora_fin)->format('H:i') ?? 'N/A');
                             @endphp
                             
                             <div class="flex items-start space-x-3">
@@ -179,15 +186,11 @@
                                     <i class="fas fa-calendar-alt text-blue-600"></i>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <!-- Nombre y tipo del horario -->
                                     <div class="flex items-center space-x-2 mb-1">
-                                  
                                         <span class="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">
-                                            {{ $preregistro->horarioSolicitado->tipo ?? 'Sin tipo' }}
+                                            {{ $horarioBase->tipo ?? 'Sin tipo' }}
                                         </span>
                                     </div>
-                                    
-                                    <!-- Información detallada del horario -->
                                     <div class="space-y-1 text-xs text-gray-600">
                                         <div class="flex items-center">
                                             <i class="fas fa-calendar-day text-gray-400 mr-1 w-3"></i>
@@ -229,7 +232,7 @@
                     <td class="px-6 py-4 whitespace-nowrap">
                         @php
                             $statusClasses = [
-                                'preregistrado' => ['bg-yellow-100 text-yellow-800', 'fa-clock', 'Preregistrado'],
+                                'pendiente' => ['bg-yellow-100 text-yellow-800', 'fa-clock', 'Pendiente'],
                                 'asignado' => ['bg-blue-100 text-blue-800', 'fa-user-check', 'Asignado'],
                                 'cursando' => ['bg-green-100 text-green-800', 'fa-play-circle', 'Cursando'],
                                 'finalizado' => ['bg-emerald-100 text-emerald-800', 'fa-graduation-cap', 'Finalizado'],
@@ -242,12 +245,27 @@
                             {{ $currentStatus[2] }}
                         </span>
                     </td>
-                    
+
+                    <!-- Celda Estado de Pago  -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        @php
+                            $pagoClasses = [
+                                'pendiente' => ['bg-orange-100 text-orange-800', 'fa-clock', 'Pendiente'],
+                                'pagado' => ['bg-green-100 text-green-800', 'fa-check-circle', 'Pagado'],
+                                'rechazado' => ['bg-red-100 text-red-800', 'fa-times-circle', 'Rechazado']
+                            ];
+                            $currentPago = $pagoClasses[$preregistro->pago_estado] ?? ['bg-gray-100 text-gray-800', 'fa-question-circle', 'Desconocido'];
+                        @endphp
+                        <span class="px-3 py-1 inline-flex items-center text-sm font-medium rounded-full {{ $currentPago[0] }}">
+                            <i class="fas {{ $currentPago[1] }} mr-2"></i>
+                            {{ $currentPago[2] }}
+                        </span>
+                    </td>
                     
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="px-6 py-12 text-center">
+                    <td colspan="7" class="px-6 py-12 text-center">
                         <div class="flex flex-col items-center text-gray-400">
                             <i class="fas fa-clipboard-list text-4xl mb-3"></i>
                             <p class="text-lg font-medium text-gray-500 mb-2">No tienes preregistros registrados</p>
@@ -275,24 +293,13 @@
         <div class="ml-3">
             <h3 class="text-sm font-medium text-blue-800">Información importante</h3>
             <div class="mt-2 text-sm text-blue-700">
-                <p class="mt-1">• El coordinador está a cargo de la asignación de grupos</p>
-                <p class="mt-1">• Una vez asignado a un grupo, recibirás una notificación</p>
+                <p class="mt-1">• <strong>Pendiente:</strong> Esperando asignación de grupo</p>
+                <p class="mt-1">• <strong>Asignado:</strong> Ya tienes grupo asignado</p>
+                <p class="mt-1">• <strong>Cursando:</strong> Actualmente en clases</p>
+                <p class="mt-1">• <strong>Finalizado:</strong> Curso completado</p>
+                <p class="mt-1">• <strong>Cancelado:</strong> Preregistro cancelado</p>
             </div>
         </div>
     </div>
 </div>
-
-@push('styles')
-<style>
-    /* Estilos para mejorar la visualización de la información de horarios */
-    .horario-info {
-        transition: all 0.2s ease;
-    }
-    
-    .horario-info:hover {
-        transform: translateY(-1px);
-    }
-</style>
-@endpush
-
 @endsection

@@ -70,12 +70,29 @@
                     Fecha: {{ \Carbon\Carbon::parse($periodoActivo->fecha_inicio)->format('d/m/Y') }} - 
                     {{ \Carbon\Carbon::parse($periodoActivo->fecha_fin)->format('d/m/Y') }}
                 </p>
+                @if($periodoActivo->fecha_limite_preregistro)
+                <p class="text-blue-600 text-sm mt-1">
+                    Fecha límite para preregistro: {{ \Carbon\Carbon::parse($periodoActivo->fecha_limite_preregistro)->format('d/m/Y') }}
+                </p>
+                @endif
+            </div>
+        </div>
+    </div>
+    @else
+    <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded-r-lg">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-yellow-400 text-xl"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-yellow-700">No es periodo de preregistros</p>
             </div>
         </div>
     </div>
     @endif
 
     <!-- Formulario de preregistro -->
+    @if($periodoActivo)
     <div class="bg-white rounded-2xl shadow-card overflow-hidden transition-smooth card-hover">
         <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
             <h2 class="text-xl font-bold text-white">Formulario de Preregistro</h2>
@@ -85,35 +102,38 @@
             <form action="{{ route('alumno.preregistro.store') }}" method="POST">
                 @csrf
                 
+                <!-- Campo oculto para periodo_id -->
+                <input type="hidden" name="periodo_id" value="{{ $periodoActivo->id }}">
+
                 <!-- Nivel solicitado -->
                 <div class="mb-8">
                     <label class="block text-sm font-medium text-slate-700 mb-3">
                         <i class="fas fa-layer-group text-blue-500 mr-2"></i>Nivel solicitado *
                     </label>
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
-                        @for($i = 1; $i <= 5; $i++)
+                        @foreach(App\Models\Preregistro::NIVELES as $nivel => $descripcion)
                             <div class="relative">
-                                <input type="radio" id="nivel_{{ $i }}" name="nivel_solicitado" value="{{ $i }}" 
-                                       class="hidden peer" {{ old('nivel_solicitado') == $i ? 'checked' : '' }} required>
-                                <label for="nivel_{{ $i }}" 
+                                <input type="radio" id="nivel_{{ $nivel }}" name="nivel_solicitado" value="{{ $nivel }}" 
+                                       class="hidden peer" {{ old('nivel_solicitado') == $nivel ? 'checked' : '' }} required>
+                                <label for="nivel_{{ $nivel }}" 
                                        class="flex flex-col items-center justify-center p-4 border-2 border-slate-200 rounded-xl cursor-pointer transition-smooth
                                               peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700
                                               hover:border-blue-300 hover:bg-blue-50">
-                                    <span class="text-2xl font-bold text-slate-700 peer-checked:text-blue-600">{{ $i }}</span>
-                                    <span class="text-xs text-slate-500 mt-1">Nivel {{ $i }}</span>
+                                    <span class="text-2xl font-bold text-slate-700 peer-checked:text-blue-600">{{ $nivel }}</span>
+                                    <span class="text-xs text-slate-500 mt-1 text-center">{{ Str::after($descripcion, ' - ') }}</span>
                                 </label>
                             </div>
-                        @endfor
+                        @endforeach
                     </div>
                     @error('nivel_solicitado')
                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <!-- Horario solicitado -->
+                <!-- Horario preferido -->
                 <div class="mb-8">
                     <label class="block text-sm font-medium text-slate-700 mb-3">
-                        <i class="fas fa-clock text-blue-500 mr-2"></i>Horario solicitado *
+                        <i class="fas fa-clock text-blue-500 mr-2"></i>Horario preferido *
                     </label>
                     <div class="space-y-4">
                         @forelse($horarios as $horario)
@@ -149,9 +169,9 @@
                             @endphp
 
                             <div class="relative">
-                                <input type="radio" id="horario_{{ $horario->id }}" name="horario_solicitado_id" 
+                                <input type="radio" id="horario_{{ $horario->id }}" name="horario_preferido_id" 
                                        value="{{ $horario->id }}" class="hidden peer" 
-                                       {{ old('horario_solicitado_id') == $horario->id ? 'checked' : '' }} required>
+                                       {{ old('horario_preferido_id') == $horario->id ? 'checked' : '' }} required>
                                 <label for="horario_{{ $horario->id }}" 
                                        class="block p-5 border-2 border-slate-200 rounded-xl cursor-pointer transition-smooth
                                               peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700
@@ -195,10 +215,10 @@
                                                             <span class="ml-2 text-slate-700 capitalize">{{ $horario->tipo ?? 'No especificado' }}</span>
                                                         </div>
                                                         <div class="flex items-center text-slate-600">
-                                                            <i class="fas fa-info-circle text-slate-400 mr-2 w-4"></i>
-                                                            <span class="font-medium">Estado:</span>
-                                                            <span class="ml-2 {{ $horario->activo ? 'text-green-600' : 'text-red-600' }}">
-                                                                {{ $horario->activo ? 'Disponible' : 'No disponible' }}
+                                                            <i class="fas fa-users text-slate-400 mr-2 w-4"></i>
+                                                            <span class="font-medium">Cupo:</span>
+                                                            <span class="ml-2 text-slate-700">
+                                                                {{ $horario->cupo_actual ?? 0 }}/{{ $horario->cupo_maximo ?? 0 }}
                                                             </span>
                                                         </div>
                                                     </div>
@@ -220,23 +240,37 @@
                             </div>
                         @endforelse
                     </div>
-                    @error('horario_solicitado_id')
+                    @error('horario_preferido_id')
                         <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
 
-                <!-- Información adicional (opcional) -->
+               
                 <div class="mb-6">
-                    <label for="semestre_carrera" class="block text-sm font-medium text-slate-700 mb-2">
-                        <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>Semestre de tu carrera (opcional)
+                    <label for="semestre_actual" class="block text-sm font-medium text-slate-700 mb-2">
+                        <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>Semestre actual de tu carrera
                     </label>
-                    <input type="text" id="semestre_carrera" name="semestre_carrera" 
-                           value="{{ old('semestre_carrera') }}"
+                    <input type="text" id="semestre_actual" name="semestre_actual" 
+                           value="{{ old('semestre_actual') }}"
                            class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth"
-                           placeholder="Ej: 4to semestre de Ingeniería">
-                    @error('semestre_carrera')
+                           placeholder="Solo escribe el numero del semestre de tu carrera">
+                    @error('semestre_actual')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
+                </div>
+
+                <!-- Información sobre el proceso -->
+                <div class="bg-slate-50 rounded-xl p-4 mb-6">
+                    <h4 class="font-medium text-slate-800 mb-2 flex items-center">
+                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                        Información importante
+                    </h4>
+                    <ul class="text-sm text-slate-600 space-y-1">
+                        <li>• Tu preregistro iniciará con estado <span class="font-medium">"Pendiente"</span></li>
+                        <li>• El pago será marcado como <span class="font-medium">"Pendiente de Pago"</span> inicialmente</li>
+                        <li>• Serás asignado a un grupo una vez que tu pago sea confirmado</li>
+                        <li>• Puedes cancelar tu preregistro antes de ser asignado a un grupo</li>
+                    </ul>
                 </div>
 
                 <!-- Botones de acción -->
@@ -275,28 +309,29 @@
         <div class="bg-white rounded-2xl shadow-card p-6">
             <div class="flex items-center mb-4">
                 <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                    <i class="fas fa-clock text-green-600"></i>
+                    <i class="fas fa-credit-card text-green-600"></i>
                 </div>
-                <h3 class="text-lg font-semibold text-slate-800">Estado del Preregistro</h3>
+                <h3 class="text-lg font-semibold text-slate-800">Proceso de Pago</h3>
             </div>
             <p class="text-slate-600 text-sm">
-                Podrás consultar el estado de tu preregistro en cualquier momento desde la sección 
-                "Mis Preregistros" y cancelarlo si es necesario antes de ser asignado.
+                Después del preregistro, deberás completar el proceso de pago. Tu asignación a grupo 
+                dependerá de la confirmación del pago.
             </p>
         </div>
     </div>
+    @endif
 </div>
 
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Efecto visual mejorado para selección de horarios
-        const horarioRadios = document.querySelectorAll('input[name="horario_solicitado_id"]');
+        const horarioRadios = document.querySelectorAll('input[name="horario_preferido_id"]');
         
         horarioRadios.forEach(radio => {
             radio.addEventListener('change', function() {
                 // Remover cualquier selección previa visual
-                document.querySelectorAll('input[name="horario_solicitado_id"] + label').forEach(label => {
+                document.querySelectorAll('input[name="horario_preferido_id"] + label').forEach(label => {
                     label.classList.remove('ring-2', 'ring-blue-400', 'shadow-md');
                 });
                 
@@ -336,7 +371,7 @@
         const form = document.querySelector('form');
         form.addEventListener('submit', function(e) {
             const nivelSeleccionado = document.querySelector('input[name="nivel_solicitado"]:checked');
-            const horarioSeleccionado = document.querySelector('input[name="horario_solicitado_id"]:checked');
+            const horarioSeleccionado = document.querySelector('input[name="horario_preferido_id"]:checked');
             
             if (!nivelSeleccionado) {
                 e.preventDefault();
@@ -346,7 +381,7 @@
             
             if (!horarioSeleccionado) {
                 e.preventDefault();
-                alert('Por favor, selecciona un horario.');
+                alert('Por favor, selecciona un horario preferido.');
                 return;
             }
         });
@@ -354,21 +389,3 @@
 </script>
 @endpush
 @endsection
-
-@if($errors->any())
-    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-lg">
-        <div class="flex items-center">
-            <div class="flex-shrink-0">
-                <i class="fas fa-exclamation-circle text-red-400 text-xl"></i>
-            </div>
-            <div class="ml-3">
-                <h3 class="text-red-800 font-medium">Errores en el formulario:</h3>
-                <ul class="mt-2 text-red-700 text-sm">
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        </div>
-    </div>
-@endif

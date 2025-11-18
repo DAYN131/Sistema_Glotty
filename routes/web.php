@@ -125,21 +125,27 @@ Route::prefix('coordinador/periodos')->group(function () {
 });
 
     // Gestión de Aulas
-    Route::prefix('coordinador/aulas')->group(function () {
-        Route::get('/', [AulaController::class, 'index'])
-            ->name('coordinador.aulas.index');
-        Route::get('/crear', [AulaController::class, 'create'])
-            ->name('coordinador.aulas.create');
-        Route::post('/', [AulaController::class, 'store'])
-            ->name('coordinador.aulas.store');
-        Route::get('/{id_aula}/editar', [AulaController::class, 'edit'])
-            ->name('coordinador.aulas.edit');
-        Route::put('/{id_aula}', [AulaController::class, 'update'])
-            ->name('coordinador.aulas.update');
-        Route::delete('/{id_aula}', [AulaController::class, 'destroy'])
-            ->name('coordinador.aulas.destroy');
-    });
-
+// Gestión de Aulas
+Route::prefix('coordinador/aulas')->group(function () {
+    Route::get('/', [AulaController::class, 'index'])
+        ->name('coordinador.aulas.index');
+    Route::get('/crear', [AulaController::class, 'create'])
+        ->name('coordinador.aulas.create');
+    Route::post('/', [AulaController::class, 'store'])
+        ->name('coordinador.aulas.store');
+    
+    // ✅ CAMBIADO: {id_aula} por {aula} para Route Model Binding
+    Route::get('/{aula}/editar', [AulaController::class, 'edit'])
+        ->name('coordinador.aulas.edit');
+    Route::put('/{aula}', [AulaController::class, 'update'])
+        ->name('coordinador.aulas.update');
+    Route::delete('/{aula}', [AulaController::class, 'destroy'])
+        ->name('coordinador.aulas.destroy');
+    
+    // ✅ Ruta para toggle disponible
+    Route::post('/{aula}/toggle-disponible', [AulaController::class, 'toggleDisponible'])
+        ->name('coordinador.aulas.toggle-disponible');
+});
     // routes/web.php
 
     Route::prefix('coordinador/horarios')->group(function () {
@@ -179,29 +185,37 @@ Route::prefix('coordinador/periodos')->group(function () {
 
 
     Route::prefix('coordinador/preregistros')->name('coordinador.preregistros.')->group(function () {
-    // PÁGINA PRINCIPAL - Análisis de demanda
-    Route::get('/demanda', [CoordinadorPreregistroController::class, 'demanda'])->name('demanda');
-    
-    // LISTA DETALLADA - Para gestión individual
-    Route::get('/', [CoordinadorPreregistroController::class, 'index'])->name('index');
-    Route::get('/estado/{estado}', [CoordinadorPreregistroController::class, 'porEstado'])->name('porEstado');
-    
-    // En routes/web.php, dentro del grupo de preregistros del coordinador:
-    Route::post('/crear-grupo-rapido', [CoordinadorPreregistroController::class, 'crearGrupoRapido'])
-    ->name('coordinador.preregistros.crearGrupoRapido');
-    
-    // GESTIÓN INDIVIDUAL
-    Route::get('/{id}', [CoordinadorPreregistroController::class, 'show'])->name('show');
-    Route::post('/{id}/asignar-grupo', [CoordinadorPreregistroController::class, 'asignarGrupo'])->name('asignarGrupo');
-    Route::post('/{id}/cambiar-estado', [CoordinadorPreregistroController::class, 'cambiarEstado'])->name('cambiarEstado');
+        // PÁGINA PRINCIPAL - Análisis de demanda
+        Route::get('/demanda', [CoordinadorPreregistroController::class, 'demanda'])->name('demanda');
+        
+        // LISTA DETALLADA - Para gestión individual
+        Route::get('/', [CoordinadorPreregistroController::class, 'index'])->name('index');
+        Route::get('/estado/{estado}', [CoordinadorPreregistroController::class, 'porEstado'])->name('porEstado');
+        
+        // GESTIÓN INDIVIDUAL
+        Route::get('/{id}', [CoordinadorPreregistroController::class, 'show'])->name('show');
+        Route::post('/{id}/asignar-grupo', [CoordinadorPreregistroController::class, 'asignarGrupo'])->name('asignarGrupo');
+        Route::post('/{id}/cambiar-estado', [CoordinadorPreregistroController::class, 'cambiarEstado'])->name('cambiarEstado');
+        Route::post('/{id}/cambiar-pago', [CoordinadorPreregistroController::class, 'cambiarEstadoPago'])->name('cambiarPago');
+        
+        // CANCELACIÓN DIRECTA
+        Route::post('/{id}/cancelar', [CoordinadorPreregistroController::class, 'cancelarPreregistro'])
+            ->name('cancelar');
+        
+        // AJAX - Estudiantes por nivel
+        Route::get('/estudiantes-por-nivel/{nivel}', [CoordinadorPreregistroController::class, 'obtenerEstudiantesPorNivel'])
+            ->name('estudiantesPorNivel');
     });
 
+// Eliminé la ruta de creación rápida de grupos ya que el cliente no la quiere
+
+    // Ruta para AJAX - Estudiantes por nivel
     Route::get('/coordinador/preregistros/estudiantes-por-nivel/{nivel}', 
-    [CoordinadorPreregistroController::class, 'obtenerEstudiantesPorNivel'])
-    ->name('coordinador.preregistros.estudiantesPorNivel');
+        [CoordinadorPreregistroController::class, 'obtenerEstudiantesPorNivel'])
+        ->name('coordinador.preregistros.estudiantesPorNivel');
 
 
-});
+    });
 
 // Logout
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
