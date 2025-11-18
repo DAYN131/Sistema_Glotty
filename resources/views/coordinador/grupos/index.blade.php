@@ -68,14 +68,7 @@
                 <i class="fas fa-plus-circle mr-2"></i>
                 Nuevo Grupo
             </a>
-            <form action="{{ route('coordinador.grupos.asignarAutomaticamente') }}" method="POST" class="inline">
-                @csrf
-                <button type="submit" 
-                        class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors">
-                    <i class="fas fa-robot mr-2"></i>
-                    Asignar Automático
-                </button>
-            </form>
+           
         </div>
     </div>
 

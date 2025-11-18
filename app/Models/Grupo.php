@@ -1,285 +1,240 @@
 <?php
+// app/Models/Grupo.php
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-
 
 class Grupo extends Model
 {
-  
+    use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
-    protected $table = 'grupos';
-
-    /**
-     * The primary key for the model.
-     *
-     * @var string
-     */
-    protected $primaryKey = 'id';
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array
-     */
     protected $fillable = [
         'nivel_ingles',
         'letra_grupo',
         'periodo_id',
-        'horario_id',
+        'horario_periodo_id',
         'aula_id',
         'profesor_id',
         'capacidad_maxima',
         'estudiantes_inscritos',
-        'estado',
+        'estado'
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array
-     */
     protected $casts = [
         'nivel_ingles' => 'integer',
         'capacidad_maxima' => 'integer',
-        'estudiantes_inscritos' => 'integer',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-        'deleted_at' => 'datetime',
+        'estudiantes_inscritos' => 'integer'
     ];
 
-    /**
-     * Estados posibles del grupo
-     */
+    // ESTADOS DEL GRUPO
     const ESTADOS = [
-        'planificado' => 'planificado',
-        'con_profesor' => 'con_profesor', 
-        'con_aula' => 'con_aula',
-        'activo' => 'activo',
-        'cancelado' => 'cancelado',
+        'planificado' => 'Planificado',
+        'con_profesor' => 'Con Profesor',
+        'con_aula' => 'Con Aula',
+        'activo' => 'Activo',
+        'cancelado' => 'Cancelado'
     ];
 
-    /**
-     * Relación con el periodo
-     */
-    public function periodo(): BelongsTo
+    // NIVELES (para consistencia con Preregistro)
+    const NIVELES = [
+        1 => 'Nivel 1 - Principiante',
+        2 => 'Nivel 2 - Básico', 
+        3 => 'Nivel 3 - Intermedio',
+        4 => 'Nivel 4 - Avanzado',
+        5 => 'Nivel 5 - Conversación'
+    ];
+
+    // LETRAS DISPONIBLES
+    const LETRAS_GRUPO = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+
+    // 🔗 RELACIONES
+    public function periodo()
     {
-        return $this->belongsTo(Periodo::class, 'periodo_id');
+        return $this->belongsTo(Periodo::class);
     }
 
-    /**
-     * Relación con el horario
-     */
-    public function horario(): BelongsTo
+    public function horario()
     {
-        return $this->belongsTo(Horario::class, 'horario_id');
+        return $this->belongsTo(HorarioPeriodo::class, 'horario_periodo_id');
     }
 
-    /**
-     * Relación con el aula
-     */
-    public function aula(): BelongsTo
+    public function aula()
     {
-        return $this->belongsTo(Aula::class, 'aula_id', 'id_aula');
+        return $this->belongsTo(Aula::class, 'aula_id');
     }
 
-    /**
-     * Relación con el profesor
-     */
-    public function profesor(): BelongsTo
+    public function profesor()
     {
-        return $this->belongsTo(Profesor::class, 'profesor_id', 'id_profesor');
+        return $this->belongsTo(Profesor::class, 'profesor_id');
     }
 
-    /**
-     * Relación con los preregistros asignados
-     */
-    public function preregistros(): HasMany
+    public function preregistros()
     {
         return $this->hasMany(Preregistro::class, 'grupo_asignado_id');
     }
 
-    /**
-     * Scope para grupos activos
-     */
-    public function scopeActivos($query)
+    public function estudiantesActivos()
     {
-        return $query->where('estado', self::ESTADOS['activo']);
+        return $this->preregistros()->whereIn('estado', ['asignado', 'cursando']);
     }
 
-    /**
-     * Scope para grupos por nivel
-     */
+    // 🎯 SCOPES ÚTILES
+    public function scopeActivos($query)
+    {
+        return $query->where('estado', 'activo');
+    }
+
+    public function scopePlanificados($query)
+    {
+        return $query->where('estado', 'planificado');
+    }
+
     public function scopePorNivel($query, $nivel)
     {
         return $query->where('nivel_ingles', $nivel);
     }
 
-    /**
-     * Scope para grupos por periodo
-     */
     public function scopePorPeriodo($query, $periodoId)
     {
         return $query->where('periodo_id', $periodoId);
     }
 
-    /**
-     * Scope para grupos con capacidad disponible
-     */
     public function scopeConCapacidad($query)
     {
         return $query->whereRaw('estudiantes_inscritos < capacidad_maxima');
     }
 
-    /**
-     * Verificar si el grupo tiene capacidad disponible
-     */
-    public function tieneCapacidad(): bool
+    // ✅ ACCESORES
+    public function getNombreCompletoAttribute()
     {
-        return $this->estudiantes_inscritos < $this->capacidad_maxima;
+        return "Nivel {$this->nivel_ingles}-{$this->letra_grupo}";
     }
 
-    /**
-     * Obtener capacidad disponible
-     */
-    public function getCapacidadDisponibleAttribute(): int
+    public function getNivelFormateadoAttribute()
+    {
+        return self::NIVELES[$this->nivel_ingles] ?? "Nivel {$this->nivel_ingles}";
+    }
+
+    public function getEstadoFormateadoAttribute()
+    {
+        return self::ESTADOS[$this->estado] ?? $this->estado;
+    }
+
+    public function getCapacidadDisponibleAttribute()
     {
         return $this->capacidad_maxima - $this->estudiantes_inscritos;
     }
 
-    /**
-     * Obtener el nombre completo del grupo (ej: "1-A")
-     */
-    public function getNombreCompletoAttribute(): string
+    public function getPorcentajeOcupacionAttribute()
     {
-        return $this->nivel_ingles . '-' . $this->letra_grupo;
+        if ($this->capacidad_maxima === 0) return 0;
+        return round(($this->estudiantes_inscritos / $this->capacidad_maxima) * 100, 2);
+    }
+
+    // ✅ MÉTODOS DE NEGOCIO
+    public function tieneCapacidad()
+    {
+        return $this->estudiantes_inscritos < $this->capacidad_maxima;
+    }
+
+    public function puedeSerActivo()
+    {
+        return $this->profesor_id && $this->aula_id && $this->tieneCapacidad();
+    }
+
+    public function puedeSerCancelado()
+    {
+        return $this->estudiantes_inscritos === 0 && $this->estado !== 'cancelado';
+    }
+
+    public function puedeEliminarse()
+    {
+        return $this->estudiantes_inscritos === 0 && $this->estado === 'planificado';
     }
 
     /**
-     * Obtener el porcentaje de ocupación
+     * Asignar estudiante al grupo
      */
-    public function getPorcentajeOcupacionAttribute(): float
+    public function asignarEstudiante($preregistroId)
     {
-        if ($this->capacidad_maxima == 0) {
-            return 0;
-        }
-        
-        return ($this->estudiantes_inscritos / $this->capacidad_maxima) * 100;
-    }
-
-    /**
-     * Verificar si el grupo está completo
-     */
-    public function getEstaCompletoAttribute(): bool
-    {
-        return $this->estudiantes_inscritos >= $this->capacidad_maxima;
-    }
-
-    /**
-     * Incrementar contador de estudiantes inscritos
-     */
-    public function incrementarInscritos(): bool
-    {
-        if ($this->esta_completo) {
+        if (!$this->tieneCapacidad()) {
             return false;
         }
 
-        return $this->increment('estudiantes_inscritos');
-    }
-
-    /**
-     * Decrementar contador de estudiantes inscritos
-     */
-    public function decrementarInscritos(): bool
-    {
-        if ($this->estudiantes_inscritos <= 0) {
+        $preregistro = Preregistro::find($preregistroId);
+        if (!$preregistro || !$preregistro->puedeSerAsignado()) {
             return false;
         }
 
-        return $this->decrement('estudiantes_inscritos');
+        // Actualizar preregistro
+        $preregistro->update([
+            'grupo_asignado_id' => $this->id,
+            'estado' => 'asignado'
+        ]);
+
+        // Actualizar contador del grupo
+        $this->increment('estudiantes_inscritos');
+
+        return true;
     }
 
     /**
-     * Obtener el estado legible
+     * Remover estudiante del grupo
      */
-    public function getEstadoLegibleAttribute(): string
+    public function removerEstudiante($preregistroId)
     {
-        $estadosLegibles = [
-            'planificado' => 'Planificado',
-            'con_profesor' => 'Con Profesor',
-            'con_aula' => 'Con Aula',
-            'activo' => 'Activo',
-            'cancelado' => 'Cancelado',
-        ];
+        $preregistro = Preregistro::find($preregistroId);
+        if (!$preregistro || $preregistro->grupo_asignado_id !== $this->id) {
+            return false;
+        }
 
-        return $estadosLegibles[$this->estado] ?? 'Desconocido';
+        // Actualizar preregistro
+        $preregistro->update([
+            'grupo_asignado_id' => null,
+            'estado' => 'pendiente'
+        ]);
+
+        // Actualizar contador del grupo
+        if ($this->estudiantes_inscritos > 0) {
+            $this->decrement('estudiantes_inscritos');
+        }
+
+        return true;
     }
 
     /**
-     * Obtener la clase CSS para el estado
+     * Obtener letras disponibles para un nivel y periodo
      */
-    public function getClaseEstadoAttribute(): string
+    public static function letrasDisponibles($nivel, $periodoId)
     {
-        $clases = [
+        $letrasOcupadas = self::where('nivel_ingles', $nivel)
+            ->where('periodo_id', $periodoId)
+            ->pluck('letra_grupo')
+            ->toArray();
+
+        return array_diff(self::LETRAS_GRUPO, $letrasOcupadas);
+    }
+
+
+    public function getClaseEstadoAttribute()
+    {
+        return match($this->estado) {
             'planificado' => 'bg-yellow-100 text-yellow-800',
             'con_profesor' => 'bg-blue-100 text-blue-800',
             'con_aula' => 'bg-purple-100 text-purple-800',
             'activo' => 'bg-green-100 text-green-800',
             'cancelado' => 'bg-red-100 text-red-800',
-        ];
-
-        return $clases[$this->estado] ?? 'bg-gray-100 text-gray-800';
+            default => 'bg-gray-100 text-gray-800'
+        };
     }
 
     /**
-     * Verificar si el grupo puede recibir más estudiantes
+     * Estado en texto legible
      */
-    public function puedeRecibirEstudiantes(): bool
+    public function getEstadoLegibleAttribute()
     {
-        return $this->estado === 'activo' && $this->tieneCapacidad();
-    }
-
-    /**
-     * Cancelar el grupo
-     */
-    public function cancelar(): bool
-    {
-        // Liberar preregistros asignados
-        $this->preregistros()->update([
-            'grupo_asignado_id' => null,
-            'estado' => 'preregistrado'
-        ]);
-
-        return $this->update([
-            'estado' => 'cancelado',
-            'estudiantes_inscritos' => 0
-        ]);
-    }
-
-    /**
-     * Obtener información resumida del grupo
-     */
-    public function getInformacionResumidaAttribute(): array
-    {
-        return [
-            'nombre' => $this->nombre_completo,
-            'nivel' => $this->nivel_ingles,
-            'letra' => $this->letra_grupo,
-            'periodo' => $this->periodo->nombre ?? 'N/A',
-            'horario' => $this->horario->nombre ?? 'N/A',
-            'profesor' => $this->profesor ? $this->profesor->nombre_profesor . ' ' . $this->profesor->apellidos_profesor : 'Por asignar',
-            'aula' => $this->aula ? $this->aula->id_aula : 'Por asignar',
-            'estado' => $this->estado_legible,
-            'ocupacion' => $this->estudiantes_inscritos . '/' . $this->capacidad_maxima,
-            'porcentaje_ocupacion' => $this->porcentaje_ocupacion,
-        ];
+        return self::ESTADOS[$this->estado] ?? $this->estado;
     }
 }

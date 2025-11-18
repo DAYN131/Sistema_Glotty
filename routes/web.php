@@ -7,7 +7,7 @@ use App\Http\Controllers\AulaController;
 use App\Http\Controllers\HorarioController;
 use App\Http\Controllers\PreregistroController;
 use App\Http\Controllers\CoordinadorPreregistroController;
-use App\Http\Controllers\GrupoController;
+use App\Http\Controllers\CoordinadorGrupoController;
 
 
 // Rutas públicas
@@ -159,28 +159,20 @@ Route::prefix('coordinador/aulas')->group(function () {
         Route::post('/{horario}/toggle-activo', [HorarioController::class, 'toggleActivo'])->name('coordinador.horarios.toggle-activo');
     });
 
-    // Gestión de Grupos
-    Route::prefix('coordinador/grupos')->name('coordinador.grupos.')->group(function () {
-        Route::get('/', [GrupoController::class, 'index'])
-            ->name('index');
-        Route::get('/crear', [GrupoController::class, 'create'])
-            ->name('create');
-        Route::post('/', [GrupoController::class, 'store'])
-            ->name('store');
-        Route::get('/{grupo}/editar', [GrupoController::class, 'edit'])
-            ->name('edit');
-        Route::put('/{grupo}', [GrupoController::class, 'update'])
-            ->name('update');
-        Route::delete('/{grupo}', [GrupoController::class, 'destroy'])
-            ->name('destroy');
 
-        // Rutas para Soft Deletes (Papelera)
-        Route::get('/eliminados', [GrupoController::class, 'eliminados'])
-            ->name('eliminados');
-        Route::put('/{grupo}/restaurar', [GrupoController::class, 'restore'])
-            ->name('restore');
-        Route::delete('/{grupo}/eliminar-permanente', [GrupoController::class, 'forceDelete'])
-            ->name('forceDelete');
+
+    Route::prefix('coordinador/grupos')->name('coordinador.grupos.')->group(function () {
+        Route::get('/', [CoordinadorGrupoController::class, 'index'])->name('index');
+        Route::get('/crear', [CoordinadorGrupoController::class, 'create'])->name('create');
+        Route::post('/', [CoordinadorGrupoController::class, 'store'])->name('store');
+        Route::get('/{id}', [CoordinadorGrupoController::class, 'show'])->name('show');
+        Route::get('/{id}/editar', [CoordinadorGrupoController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [CoordinadorGrupoController::class, 'update'])->name('update');
+        
+        // Acciones específicas
+        Route::post('/{id}/asignar-estudiante', [CoordinadorGrupoController::class, 'asignarEstudiante'])->name('asignarEstudiante');
+        Route::post('/{id}/remover-estudiante', [CoordinadorGrupoController::class, 'removerEstudiante'])->name('removerEstudiante');
+        Route::post('/{id}/cambiar-estado', [CoordinadorGrupoController::class, 'cambiarEstado'])->name('cambiarEstado');
     });
 
 

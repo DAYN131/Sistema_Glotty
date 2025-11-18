@@ -163,7 +163,7 @@
 
 
     <!-- Tarjeta Grupos -->
-    <a href="" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
+    <a href="{{ route('coordinador.grupos.index') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
         <div class="flex items-center mb-5">
             <div class="p-3 bg-teal-100 rounded-lg mr-4 group-hover:bg-teal-200 transition-smooth">
                 <i class="fas fa-users-between-lines text-teal-600 text-xl"></i>
