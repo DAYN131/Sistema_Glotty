@@ -267,24 +267,33 @@
         const horaInicio = document.getElementById("hora_inicio");
         const horaFin = document.getElementById("hora_fin");
 
+
+
         function toggleDiasContainers() {
             diasSemanalContainer.classList.add("hidden");
             diasSabatinoContainer.classList.add("hidden");
 
+    
+            document.querySelectorAll('input[name="dias[]"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
             if (tipoSelect.value === "semanal") {
                 diasSemanalContainer.classList.remove("hidden");
-                // Auto-seleccionar primer día si no hay selección
+                // Auto-seleccionar solo el primer día
                 if (!document.querySelector('#dias_semanal_container input:checked')) {
                     document.querySelector('#dias_semanal_container input').checked = true;
                 }
             } else if (tipoSelect.value === "sabatino") {
                 diasSabatinoContainer.classList.remove("hidden");
-                // Auto-seleccionar sábado
+                // Auto-seleccionar solo sábado
                 document.getElementById('dia_sabado').checked = true;
             }
             
             actualizarVistaPrevia();
         }
+
+
 
         function actualizarVistaPrevia() {
             const tipo = tipoSelect.value;

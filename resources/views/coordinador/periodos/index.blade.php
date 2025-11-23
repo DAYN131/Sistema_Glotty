@@ -81,8 +81,10 @@
                         <option value="">Todos los estados</option>
                         <option value="configuracion" {{ request('estado') == 'configuracion' ? 'selected' : '' }}>En Configuración</option>
                         <option value="preregistros_activos" {{ request('estado') == 'preregistros_activos' ? 'selected' : '' }}>Pre-registros Activos</option>
+                        <option value="preregistros_cerrados" {{ request('estado') == 'preregistros_cerrados' ? 'selected' : '' }}>Pre-registros Cerrados</option>
                         <option value="en_curso" {{ request('estado') == 'en_curso' ? 'selected' : '' }}>En Curso</option>
                         <option value="finalizado" {{ request('estado') == 'finalizado' ? 'selected' : '' }}>Finalizados</option>
+                        <option value="cancelado" {{ request('estado') == 'cancelado' ? 'selected' : '' }}>Cancelados</option>
                     </select>
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
                         <i class="fas fa-chevron-down"></i>
@@ -256,11 +258,17 @@
                                                 <option value="preregistros_activos" {{ $periodo->estado == 'preregistros_activos' ? 'disabled' : '' }}>
                                                     ✎ Pre-registros Activos
                                                 </option>
+                                                <option value="preregistros_cerrados" {{ $periodo->estado == 'preregistros_cerrados' ? 'disabled' : '' }}>
+                                                    🔒 Pre-registros Cerrados
+                                                </option>
                                                 <option value="en_curso" {{ $periodo->estado == 'en_curso' ? 'disabled' : '' }}>
                                                     ⦿ En Curso
                                                 </option>
                                                 <option value="finalizado" {{ $periodo->estado == 'finalizado' ? 'disabled' : '' }}>
-                                                    ✓ Finalizado
+                                                    ✅ Finalizado
+                                                </option>
+                                                <option value="cancelado" {{ $periodo->estado == 'cancelado' ? 'disabled' : '' }}>
+                                                    ❌ Cancelado
                                                 </option>
                                             </select>
                                             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">

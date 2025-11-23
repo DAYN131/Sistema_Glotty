@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Aula;
+use App\Models\Grupo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -58,9 +59,9 @@ class AulaController extends Controller
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'nombre' => 'required|string|max:100',
+            'nombre' => 'required|string|max:100|unique:aulas,nombre',
             'edificio' => 'required|string|max:50',
-            'capacidad' => 'required|integer|min:1',
+            'capacidad' => 'required|integer|min:1|max:200',
             'tipo' => ['required', Rule::in(array_keys(Aula::TIPOS_AULA))],
             'equipamiento' => 'nullable|string|max:500',
             'disponible' => 'boolean'
@@ -90,7 +91,21 @@ class AulaController extends Controller
     public function edit(Aula $aula)
     {
         $tiposAula = Aula::TIPOS_AULA;
-        return view('coordinador.aulas.edit', compact('aula', 'tiposAula'));
+        
+        // ✅ NUEVO: Obtener información de uso del aula
+        $gruposAsignados = $aula->grupos()
+            ->with(['periodo', 'horario'])
+            ->whereNotIn('estado', ['cancelado'])
+            ->get();
+            
+        $horariosOcupados = $aula->obtenerHorariosOcupados();
+        
+        return view('coordinador.aulas.edit', compact(
+            'aula', 
+            'tiposAula', 
+            'gruposAsignados',
+            'horariosOcupados'
+        ));
     }
 
     /**
@@ -99,9 +114,14 @@ class AulaController extends Controller
     public function update(Request $request, Aula $aula)
     {
         $validatedData = $request->validate([
-            'nombre' => 'required|string|max:100',
+            'nombre' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('aulas')->ignore($aula->id)
+            ],
             'edificio' => 'required|string|max:50',
-            'capacidad' => 'required|integer|min:1',
+            'capacidad' => 'required|integer|min:1|max:200',
             'tipo' => ['required', Rule::in(array_keys(Aula::TIPOS_AULA))],
             'equipamiento' => 'nullable|string|max:500',
             'disponible' => 'boolean'
@@ -109,6 +129,18 @@ class AulaController extends Controller
 
         try {
             DB::beginTransaction();
+
+            // ✅ NUEVO: Validar que la capacidad no sea menor a los grupos actuales
+            if ($validatedData['capacidad'] < $aula->capacidad) {
+                $gruposConMayorCapacidad = $aula->grupos()
+                    ->where('capacidad_maxima', '>', $validatedData['capacidad'])
+                    ->whereNotIn('estado', ['cancelado'])
+                    ->exists();
+                    
+                if ($gruposConMayorCapacidad) {
+                    throw new \Exception('No se puede reducir la capacidad. Hay grupos asignados que requieren más capacidad.');
+                }
+            }
 
             $aula->update($validatedData);
 
@@ -131,16 +163,10 @@ class AulaController extends Controller
     public function destroy(Aula $aula)
     {
         try {
-            // Verificar si el aula tiene grupos asignados
-            if ($aula->grupos()->count() > 0) {
+            // ✅ ACTUALIZADO: Solo verificar grupos (eliminamos disponibilidadHorarios)
+            if ($aula->grupos()->whereNotIn('estado', ['cancelado'])->count() > 0) {
                 return redirect()->route('coordinador.aulas.index')
-                    ->with('error', '❌ No se puede eliminar el aula. Tiene grupos asignados.');
-            }
-
-            // Verificar si tiene disponibilidad asociada
-            if ($aula->disponibilidadHorarios()->count() > 0) {
-                return redirect()->route('coordinador.aulas.index')
-                    ->with('error', '❌ No se puede eliminar el aula. Tiene horarios asignados.');
+                    ->with('error', '❌ No se puede eliminar el aula. Tiene grupos activos asignados.');
             }
 
             $aula->delete();
@@ -160,6 +186,12 @@ class AulaController extends Controller
     public function toggleDisponible(Aula $aula)
     {
         try {
+            // ✅ NUEVO: Validar que no tenga grupos activos si se va a desactivar
+            if ($aula->disponible && $aula->grupos()->whereNotIn('estado', ['cancelado'])->count() > 0) {
+                return redirect()->route('coordinador.aulas.index')
+                    ->with('error', '❌ No se puede desactivar el aula. Tiene grupos activos asignados.');
+            }
+
             $aula->update([
                 'disponible' => !$aula->disponible
             ]);
@@ -171,7 +203,84 @@ class AulaController extends Controller
 
         } catch (\Exception $e) {
             return redirect()->route('coordinador.aulas.index')
-                ->with('error', '❌ Error al cambiar estado del aula.');
+                ->with('error', '❌ Error al cambiar estado del aula: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * ✅ NUEVO: Muestra los horarios y grupos asignados al aula
+     */
+    public function show(Aula $aula)
+    {
+        $gruposAsignados = $aula->grupos()
+            ->with(['periodo', 'horario', 'profesor'])
+            ->whereNotIn('estado', ['cancelado'])
+            ->orderBy('horario_periodo_id')
+            ->get();
+            
+        $horariosOcupados = $aula->obtenerHorariosOcupados();
+        $estadisticas = $this->obtenerEstadisticasAula($aula);
+        
+        return view('coordinador.aulas.show', compact(
+            'aula',
+            'gruposAsignados', 
+            'horariosOcupados',
+            'estadisticas'
+        ));
+    }
+
+    /**
+     * ✅ NUEVO: Obtiene estadísticas de uso del aula
+     */
+    private function obtenerEstadisticasAula(Aula $aula)
+    {
+        $gruposActivos = $aula->grupos()
+            ->whereNotIn('estado', ['cancelado'])
+            ->get();
+            
+        return [
+            'total_grupos' => $gruposActivos->count(),
+            'grupos_activos' => $gruposActivos->where('estado', 'activo')->count(),
+            'ocupacion_promedio' => $gruposActivos->avg('porcentaje_ocupacion') ?? 0,
+            'capacidad_utilizada' => $gruposActivos->sum('estudiantes_inscritos'),
+            'horarios_ocupados' => $gruposActivos->unique('horario_periodo_id')->count()
+        ];
+    }
+
+    /**
+     * ✅ NUEVO: API para obtener aulas disponibles para un horario
+     */
+    public function disponiblesParaHorario(Request $request)
+    {
+        $request->validate([
+            'horario_periodo_id' => 'required|exists:horarios_periodo,id',
+            'capacidad_requerida' => 'nullable|integer|min:1'
+        ]);
+
+        try {
+            $aulas = Aula::disponiblesParaHorario(
+                $request->horario_periodo_id,
+                $request->capacidad_requerida
+            );
+
+            return response()->json([
+                'success' => true,
+                'aulas' => $aulas->map(function ($aula) {
+                    return [
+                        'id' => $aula->id,
+                        'nombre_completo' => $aula->nombre_completo,
+                        'capacidad' => $aula->capacidad,
+                        'tipo' => $aula->tipo_formateado,
+                        'info_resumida' => $aula->info_resumida
+                    ];
+                })
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener aulas disponibles: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

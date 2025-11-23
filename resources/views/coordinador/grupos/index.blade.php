@@ -68,7 +68,6 @@
                 <i class="fas fa-plus-circle mr-2"></i>
                 Nuevo Grupo
             </a>
-           
         </div>
     </div>
 
@@ -135,10 +134,9 @@
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="font-bold text-lg text-gray-900">{{ $grupo->nombre_completo }}</div>
-                            <div class="text-sm text-gray-500">Nivel {{ $grupo->nivel_ingles }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">{{ $grupo->periodo->nombre }}</div>
+                            <div class="text-sm text-gray-900">{{ $grupo->periodo->nombre_periodo }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             @if($grupo->horario)
@@ -181,34 +179,36 @@
                                 {{ $grupo->estado_legible }}
                             </span>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div class="flex space-x-2">
-                                @if($grupo->estado == 'planificado')
-                                <a href="{{ route('coordinador.grupos.asignarProfesor', $grupo->id) }}" 
-                                   class="text-blue-600 hover:text-blue-900" title="Asignar Profesor">
-                                    <i class="fas fa-user-tie"></i>
-                                </a>
-                                @elseif($grupo->estado == 'con_profesor')
-                                <a href="{{ route('coordinador.grupos.asignarAula', $grupo->id) }}" 
-                                   class="text-purple-600 hover:text-purple-900" title="Asignar Aula">
-                                    <i class="fas fa-door-open"></i>
-                                </a>
-                                @elseif($grupo->estado == 'con_aula')
-                                <form action="{{ route('coordinador.grupos.activar', $grupo->id) }}" method="POST" class="inline">
-                                    @csrf
-                                    <button type="submit" class="text-green-600 hover:text-green-900" title="Activar Grupo">
-                                        <i class="fas fa-play-circle"></i>
-                                    </button>
-                                </form>
-                                @endif
-                                
-                                @if($grupo->estado == 'activo' && $grupo->tieneCapacidad())
-                                <span class="text-green-600" title="Puede recibir estudiantes">
-                                    <i class="fas fa-user-plus"></i>
-                                </span>
-                                @endif
-                            </div>
-                        </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                            <!-- Ver detalles -->
+                            <a href="{{ route('coordinador.grupos.show', $grupo->id) }}" 
+                            class="text-blue-600 hover:text-blue-900 transition-colors" 
+                            title="Ver detalles">
+                                <i class="fas fa-eye"></i>
+                            </a>
+
+                            <!-- Editar grupo (para todas las asignaciones) -->
+                            <a href="{{ route('coordinador.grupos.edit', $grupo->id) }}" 
+                            class="text-green-600 hover:text-green-900 transition-colors" 
+                            title="Editar y asignar recursos">
+                                <i class="fas fa-edit"></i>
+                            </a>
+
+                            <!-- Indicadores de estado -->
+                            @if($grupo->estado == 'activo' && $grupo->tieneCapacidad())
+                            <span class="text-green-600" title="Puede recibir estudiantes">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            @endif
+
+                            @if($grupo->estado == 'activo' && !$grupo->tieneCapacidad())
+                            <span class="text-red-600" title="Grupo lleno">
+                                <i class="fas fa-users-slash"></i>
+                            </span>
+                            @endif
+                        </div>
+                    </td>
                     </tr>
                     @empty
                     <tr>
@@ -224,6 +224,15 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Paginación -->
+        @if($grupos->hasPages())
+        <div class="bg-white px-6 py-4 border-t border-gray-200">
+            {{ $grupos->links() }}
+        </div>
+        @endif
     </div>
+
 </div>
+
 @endsection

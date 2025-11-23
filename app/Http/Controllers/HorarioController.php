@@ -38,6 +38,11 @@ class HorarioController extends Controller
 
     public function store(Request $request)
     {
+
+         \Log::info('Datos del formulario:', $request->all());
+        \Log::info('Horarios existentes:', Horario::pluck('nombre')->toArray());
+
+
         $request->validate([
             'nombre' => 'required|string|max:255|unique:horarios,nombre',
             'tipo' => 'required|in:semanal,sabatino',

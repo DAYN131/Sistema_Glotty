@@ -10,13 +10,14 @@ use App\Models\Aula;
 use App\Models\Profesor;
 use App\Models\Preregistro;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CoordinadorGrupoController extends Controller
 {
     /**
      * Muestra la lista de grupos
      */
-   public function index(Request $request)
+    public function index(Request $request)
     {
         $query = Grupo::with(['periodo', 'horario', 'aula', 'profesor', 'estudiantesActivos'])
             ->latest();
@@ -38,14 +39,14 @@ class CoordinadorGrupoController extends Controller
         $periodos = Periodo::all();
         $periodoActivo = Periodo::conPreRegistrosActivos()->first();
 
-        // ✅ CALCULAR ESTADÍSTICAS
+        // CALCULAR ESTADÍSTICAS
         $estadisticas = $this->calcularEstadisticas($request);
 
         return view('coordinador.grupos.index', compact(
             'grupos', 
             'periodos', 
             'periodoActivo',
-            'estadisticas' // ✅ AGREGADO
+            'estadisticas' 
         ));
     }
 
@@ -89,21 +90,22 @@ class CoordinadorGrupoController extends Controller
      */
     public function create()
     {
-            $periodos = Periodo::whereIn('estado', ['configuracion', 'preregistros_activos'])->get();
-            $horarios = HorarioPeriodo::where('activo', true)->get();
-            
-            $aulas = Aula::all();
-            $profesores = Profesor::all();
-            
-            $periodoActivo = Periodo::conPreRegistrosActivos()->first();
+        $periodos = Periodo::whereIn('estado', ['configuracion', 'preregistros_activos'])->get();
+        $horarios = HorarioPeriodo::where('activo', true)->get();
+        
+        // Quitar filtros problemáticos hasta que existan las columnas
+        $aulas = Aula::all();
+        $profesores = Profesor::all();
+        
+        $periodoActivo = Periodo::conPreRegistrosActivos()->first();
 
-            return view('coordinador.grupos.create', compact(
-                'periodos',
-                'horarios',
-                'aulas',
-                'profesores',
-                'periodoActivo'
-            ));
+        return view('coordinador.grupos.create', compact(
+            'periodos',
+            'horarios',
+            'aulas',
+            'profesores',
+            'periodoActivo'
+        ));
     }
 
     /**
@@ -113,7 +115,7 @@ class CoordinadorGrupoController extends Controller
     {
         $request->validate([
             'nivel_ingles' => 'required|integer|between:1,5',
-            'letra_grupo' => 'required|string|size:1',
+            'letra_grupo' => 'required|string|size:1|in:A,B,C,D,E,F',
             'periodo_id' => 'required|exists:periodos,id',
             'horario_periodo_id' => 'required|exists:horarios_periodo,id',
             'aula_id' => 'nullable|exists:aulas,id',
@@ -134,20 +136,42 @@ class CoordinadorGrupoController extends Controller
                 )->withInput();
             }
 
-            // Crear grupo
-            $grupo = Grupo::create([
-                'nivel_ingles' => $request->nivel_ingles,
-                'letra_grupo' => $request->letra_grupo,
-                'periodo_id' => $request->periodo_id,
-                'horario_periodo_id' => $request->horario_periodo_id,
-                'aula_id' => $request->aula_id,
-                'profesor_id' => $request->profesor_id,
-                'capacidad_maxima' => $request->capacidad_maxima,
-                'estado' => $this->determinarEstadoInicial($request)
-            ]);
+            // Validaciones adicionales usando transacción
+            return DB::transaction(function () use ($request) {
+                // Crear instancia para validaciones
+                $grupo = new Grupo();
+                $grupo->fill($request->all());
+                
+                // Validar aula si está asignada
+                if ($request->aula_id) {
+                    $grupo->validarAsignacionAula($request->aula_id);
+                }
 
-            return redirect()->route('coordinador.grupos.show', $grupo->id)
-                ->with('success', "Grupo {$grupo->nombre_completo} creado exitosamente.");
+                // Validar profesor si está asignado
+                if ($request->profesor_id) {
+                    $grupo->validarAsignacionProfesor($request->profesor_id);
+                }
+
+                // Determinar estado automáticamente
+                $estado = $this->determinarEstadoInicial($request);
+                
+                // Crear grupo
+                $grupo = Grupo::create([
+                    'nivel_ingles' => $request->nivel_ingles,
+                    'letra_grupo' => $request->letra_grupo,
+                    'periodo_id' => $request->periodo_id,
+                    'horario_periodo_id' => $request->horario_periodo_id,
+                    'aula_id' => $request->aula_id,
+                    'profesor_id' => $request->profesor_id,
+                    'capacidad_maxima' => $request->capacidad_maxima,
+                    'estado' => $estado,
+                    'estudiantes_inscritos' => 0 // Inicializar en 0
+                ]);
+
+                return redirect()->route('coordinador.grupos.show', $grupo->id)
+                    ->with('success', "Grupo {$grupo->nombre_completo} creado exitosamente.");
+                    
+            });
 
         } catch (\Exception $e) {
             return back()->with('error', 'Error al crear grupo: ' . $e->getMessage())->withInput();
@@ -190,8 +214,10 @@ class CoordinadorGrupoController extends Controller
         $grupo = Grupo::findOrFail($id);
         $periodos = Periodo::whereIn('estado', ['configuracion', 'preregistros_activos'])->get();
         $horarios = HorarioPeriodo::where('activo', true)->get();
-        $aulas = Aula::where('disponible', true)->get();
-        $profesores = Profesor::where('activo', true)->get();
+        
+        // Quitar filtros problemáticos
+        $aulas = Aula::all();
+        $profesores = Profesor::all();
 
         return view('coordinador.grupos.edit', compact(
             'grupo',
@@ -225,15 +251,28 @@ class CoordinadorGrupoController extends Controller
                 )->withInput();
             }
 
-            $grupo->update([
-                'horario_periodo_id' => $request->horario_periodo_id,
-                'aula_id' => $request->aula_id,
-                'profesor_id' => $request->profesor_id,
-                'capacidad_maxima' => $request->capacidad_maxima,
-                'estado' => $request->estado
-            ]);
+            // Validaciones adicionales usando transacción
+            return DB::transaction(function () use ($request, $grupo) {
+                // Validar aula si está asignada o cambió
+                if ($request->aula_id && $request->aula_id != $grupo->aula_id) {
+                    $grupo->validarAsignacionAula($request->aula_id);
+                }
 
-            return back()->with('success', 'Grupo actualizado exitosamente.');
+                // Validar profesor si está asignado o cambió
+                if ($request->profesor_id && $request->profesor_id != $grupo->profesor_id) {
+                    $grupo->validarAsignacionProfesor($request->profesor_id);
+                }
+
+                $grupo->update([
+                    'horario_periodo_id' => $request->horario_periodo_id,
+                    'aula_id' => $request->aula_id,
+                    'profesor_id' => $request->profesor_id,
+                    'capacidad_maxima' => $request->capacidad_maxima,
+                    'estado' => $request->estado
+                ]);
+
+                return back()->with('success', 'Grupo actualizado exitosamente.');
+            });
 
         } catch (\Exception $e) {
             return back()->with('error', 'Error al actualizar grupo: ' . $e->getMessage())->withInput();
@@ -246,21 +285,30 @@ class CoordinadorGrupoController extends Controller
     public function asignarEstudiante(Request $request, $id)
     {
         $grupo = Grupo::findOrFail($id);
-        $preregistro = Preregistro::findOrFail($request->preregistro_id);
+        
+        $request->validate([
+            'preregistro_id' => 'required|exists:preregistros,id'
+        ]);
 
-        if (!$preregistro->puedeSerAsignado()) {
-            return back()->with('error', 'Este estudiante no puede ser asignado a un grupo.');
-        }
+        try {
+            $preregistro = Preregistro::findOrFail($request->preregistro_id);
 
-        if (!$grupo->tieneCapacidad()) {
-            return back()->with('error', 'El grupo no tiene capacidad disponible.');
-        }
+            if (!$preregistro->puedeSerAsignado()) {
+                return back()->with('error', 'Este estudiante no puede ser asignado a un grupo.');
+            }
 
-        if ($grupo->asignarEstudiante($preregistro->id)) {
+            if (!$grupo->tieneCapacidad()) {
+                return back()->with('error', 'El grupo no tiene capacidad disponible.');
+            }
+
+            // Usar el método del modelo que ahora lanza excepciones
+            $grupo->asignarEstudiante($preregistro->id);
+
             return back()->with('success', 'Estudiante asignado al grupo exitosamente.');
-        }
 
-        return back()->with('error', 'Error al asignar estudiante al grupo.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 
     /**
@@ -269,12 +317,20 @@ class CoordinadorGrupoController extends Controller
     public function removerEstudiante(Request $request, $id)
     {
         $grupo = Grupo::findOrFail($id);
+        
+        $request->validate([
+            'preregistro_id' => 'required|exists:preregistros,id'
+        ]);
 
-        if ($grupo->removerEstudiante($request->preregistro_id)) {
+        try {
+            // Usar el método del modelo que ahora lanza excepciones
+            $grupo->removerEstudiante($request->preregistro_id);
+
             return back()->with('success', 'Estudiante removido del grupo exitosamente.');
-        }
 
-        return back()->with('error', 'Error al remover estudiante del grupo.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 
     /**
@@ -324,6 +380,131 @@ class CoordinadorGrupoController extends Controller
             return 'con_aula';
         } else {
             return 'planificado';
+        }
+    }
+
+    /**
+     * Muestra el modal para asignar profesor
+     */
+    public function asignarProfesor($id)
+    {
+        $grupo = Grupo::findOrFail($id);
+        
+        // Quitar filtro problemático hasta que exista la columna
+        $profesores = Profesor::all();
+        
+        return view('coordinador.grupos.modals.asignar-profesor', compact('grupo', 'profesores'));
+    }
+
+    /**
+     * Procesa la asignación de profesor
+     */
+    public function procesarAsignarProfesor(Request $request, $id)
+    {
+        $grupo = Grupo::findOrFail($id);
+        
+        $request->validate([
+            'profesor_id' => 'required|exists:profesores,id'
+        ]);
+
+        try {
+            // Validar asignación de profesor
+            $grupo->validarAsignacionProfesor($request->profesor_id);
+
+            $grupo->update([
+                'profesor_id' => $request->profesor_id,
+                'estado' => $grupo->aula_id ? 'activo' : 'con_profesor'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profesor asignado exitosamente.',
+                'grupo' => $grupo->fresh(['profesor'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al asignar profesor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Muestra el modal para asignar aula
+     */
+    public function asignarAula($id)
+    {
+        $grupo = Grupo::findOrFail($id);
+        
+        // Quitar filtro problemático hasta que exista la columna
+        $aulas = Aula::all();
+        
+        return view('coordinador.grupos.modals.asignar-aula', compact('grupo', 'aulas'));
+    }
+
+    /**
+     * Procesa la asignación de aula
+     */
+    public function procesarAsignarAula(Request $request, $id)
+    {
+        $grupo = Grupo::findOrFail($id);
+        
+        $request->validate([
+            'aula_id' => 'required|exists:aulas,id'
+        ]);
+
+        try {
+            // Validar asignación de aula
+            $grupo->validarAsignacionAula($request->aula_id);
+
+            $grupo->update([
+                'aula_id' => $request->aula_id,
+                'estado' => $grupo->profesor_id ? 'activo' : 'con_aula'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Aula asignada exitosamente.',
+                'grupo' => $grupo->fresh(['aula'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al asignar aula: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Activa un grupo directamente
+     */
+    public function activarGrupo($id)
+    {
+        $grupo = Grupo::findOrFail($id);
+
+        try {
+            if (!$grupo->puedeSerActivo()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El grupo no puede activarse. Verifique que tenga profesor y aula asignados.'
+                ], 422);
+            }
+
+            $grupo->update(['estado' => 'activo']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Grupo activado exitosamente.',
+                'grupo' => $grupo->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al activar grupo: ' . $e->getMessage()
+            ], 500);
         }
     }
 }

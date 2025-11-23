@@ -12,7 +12,7 @@ class Aula extends Model
 
     protected $fillable = [
         'nombre',
-        'edificio',
+        'edificio', 
         'capacidad',
         'tipo',
         'equipamiento',
@@ -28,73 +28,68 @@ class Aula extends Model
     const TIPOS_AULA = [
         'regular' => 'Aula Regular',
         'laboratorio' => 'Laboratorio',
-        'computo' => 'Sala de Cómputo',
+        'computo' => 'Sala de Cómputo', 
         'audiovisual' => 'Aula Audiovisual',
     ];
 
-    // Relación con disponibilidad por horario
-    public function disponibilidadHorarios()
-    {
-        return $this->hasMany(DisponibilidadAula::class);
-    }
-
-    // Relación con grupos (a través de disponibilidad)
+    // ✅ RELACIÓN DIRECTA CON GRUPOS (más simple)
     public function grupos()
     {
-        return $this->hasManyThrough(Grupo::class, DisponibilidadAula::class, 'aula_id', 'id', 'id', 'grupo_id');
+        return $this->hasMany(Grupo::class, 'aula_id');
     }
 
-    // Scope para aulas disponibles
+    // ✅ Scope para aulas disponibles
     public function scopeDisponibles($query)
     {
         return $query->where('disponible', true);
     }
 
-    // Scope por tipo de aula
+    // ✅ Scope por tipo de aula
     public function scopePorTipo($query, $tipo)
     {
         return $query->where('tipo', $tipo);
     }
 
-    // Scope por edificio
+    // ✅ Scope por edificio
     public function scopePorEdificio($query, $edificio)
     {
         return $query->where('edificio', $edificio);
     }
 
-    // Scope que combina múltiples filtros
-    public function scopeFiltrar($query, $filtros)
-    {
-        if (isset($filtros['edificio']) && $filtros['edificio']) {
-            $query->where('edificio', $filtros['edificio']);
-        }
-        
-        if (isset($filtros['tipo']) && $filtros['tipo']) {
-            $query->where('tipo', $filtros['tipo']);
-        }
-        
-        if (isset($filtros['disponible']) && $filtros['disponible'] !== '') {
-            $query->where('disponible', $filtros['disponible']);
-        }
-        
-        return $query;
-    }
-
-    // Verificar si está disponible en un horario específico
+    // ✅ NUEVO: Verificar disponibilidad en horario específico
     public function estaDisponibleEnHorario($horarioPeriodoId)
     {
+        // Si el aula no está disponible globalmente
         if (!$this->disponible) {
-            return false; // No disponible globalmente
+            return false;
         }
 
-        $disponibilidad = $this->disponibilidadHorarios()
+        // Verificar si ya está ocupada en ese horario
+        $ocupada = $this->grupos()
             ->where('horario_periodo_id', $horarioPeriodoId)
-            ->first();
+            ->whereNotIn('estado', ['cancelado'])
+            ->exists();
 
-        return $disponibilidad ? $disponibilidad->disponible : true;
+        return !$ocupada;
     }
 
-    // Accesor para nombre completo (sin redundancia)
+    // ✅ NUEVO: Obtener horarios ocupados
+    public function obtenerHorariosOcupados()
+    {
+        return $this->grupos()
+            ->whereNotIn('estado', ['cancelado'])
+            ->with('horario')
+            ->get()
+            ->pluck('horario');
+    }
+
+    // ✅ NUEVO: Verificar si soporta capacidad
+    public function soportaCapacidad($capacidadRequerida)
+    {
+        return $this->capacidad >= $capacidadRequerida;
+    }
+
+    // Accesor para nombre completo
     public function getNombreCompletoAttribute()
     {
         return "{$this->edificio}-{$this->nombre}";
@@ -106,13 +101,30 @@ class Aula extends Model
         return self::TIPOS_AULA[$this->tipo] ?? $this->tipo;
     }
 
-    // Accesor para mostrar información resumida
+    // Accesor para información resumida
     public function getInfoResumidaAttribute()
     {
-        return "{$this->nombre_completo} - {$this->tipo_formateado} ({$this->capacidad} pers.)";
+        $disponibilidad = $this->disponible ? 'Disponible' : 'No disponible';
+        return "{$this->nombre_completo} - {$this->tipo_formateado} ({$this->capacidad} pers.) - {$disponibilidad}";
     }
 
-    // Método para obtener estadísticas
+    // ✅ NUEVO: Método para obtener aulas disponibles para un horario
+    public static function disponiblesParaHorario($horarioPeriodoId, $capacidadRequerida = null)
+    {
+        $query = self::disponibles()
+            ->whereDoesntHave('grupos', function ($q) use ($horarioPeriodoId) {
+                $q->where('horario_periodo_id', $horarioPeriodoId)
+                  ->whereNotIn('estado', ['cancelado']);
+            });
+
+        if ($capacidadRequerida) {
+            $query->where('capacidad', '>=', $capacidadRequerida);
+        }
+
+        return $query->get();
+    }
+
+    // Método para obtener estadísticas (simplificado)
     public static function obtenerEstadisticas()
     {
         return [

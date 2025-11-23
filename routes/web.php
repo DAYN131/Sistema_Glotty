@@ -97,6 +97,10 @@ Route::prefix('coordinador/periodos')->group(function () {
     Route::delete('/{periodo}', [PeriodoController::class, 'destroy'])
         ->name('coordinador.periodos.destroy');
 
+    // ✅ AÑADE ESTA RUTA FALTANTE
+    Route::post('/{periodo}/agregar-horarios', [PeriodoController::class, 'agregarHorarios'])
+        ->name('coordinador.periodos.agregar-horarios');
+
     // Rutas de cambio de estado
     Route::post('/{periodo}/activar-preregistros', [PeriodoController::class, 'activarPreregistros'])
         ->name('coordinador.periodos.activar-preregistros');
@@ -173,6 +177,13 @@ Route::prefix('coordinador/aulas')->group(function () {
         Route::post('/{id}/asignar-estudiante', [CoordinadorGrupoController::class, 'asignarEstudiante'])->name('asignarEstudiante');
         Route::post('/{id}/remover-estudiante', [CoordinadorGrupoController::class, 'removerEstudiante'])->name('removerEstudiante');
         Route::post('/{id}/cambiar-estado', [CoordinadorGrupoController::class, 'cambiarEstado'])->name('cambiarEstado');
+        
+        // Nuevas rutas para modales
+        Route::get('/{id}/asignar-profesor', [CoordinadorGrupoController::class, 'asignarProfesor'])->name('asignarProfesor');
+        Route::post('/{id}/asignar-profesor', [CoordinadorGrupoController::class, 'procesarAsignarProfesor'])->name('procesarAsignarProfesor');
+        Route::get('/{id}/asignar-aula', [CoordinadorGrupoController::class, 'asignarAula'])->name('asignarAula');
+        Route::post('/{id}/asignar-aula', [CoordinadorGrupoController::class, 'procesarAsignarAula'])->name('procesarAsignarAula');
+        Route::post('/{id}/activar', [CoordinadorGrupoController::class, 'activarGrupo'])->name('activarGrupo');
     });
 
 
