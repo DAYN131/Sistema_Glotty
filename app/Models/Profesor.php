@@ -12,10 +12,7 @@ class Profesor extends Authenticatable
 
     protected $table = 'profesores';
     protected $primaryKey = 'id_profesor';
-    
-    // ✅ QUITAR completamente estas líneas
-    // public $incrementing = false;
-    // protected $keyType = 'string';
+
     
     protected $fillable = [
         'rfc_profesor', 'nombre_profesor', 'apellidos_profesor',

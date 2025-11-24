@@ -185,7 +185,7 @@
                                     {{ $preregistro->nivel_solicitado }}
                                 </span>
                                 <span class="text-sm font-medium text-slate-700">
-                                    {{ $preregistro->nivel_formateado }}
+                                    {{ $preregistro->nivel }}
                                 </span>
                             </div>
                         </td>
@@ -272,11 +272,22 @@
                                     <i class="fas fa-eye"></i>
                                 </a>
 
-                                <!-- Asignar grupo -->
-                                @if($preregistro->estado === 'pendiente' && $preregistro->pago_estado === 'pagado')
-                                <button onclick="mostrarModalAsignar({{ $preregistro->id }})" 
-                                        class="text-green-600 hover:text-green-900" title="Asignar grupo">
-                                    <i class="fas fa-users"></i>
+                                <!-- Asignar/Reasignar grupo -->
+                                @if($preregistro->pago_estado === 'pagado')
+                                    @if($preregistro->estado === 'pendiente' || $preregistro->estado === 'asignado')
+                                    <button onclick="mostrarModalAsignar({{ $preregistro->id }})" 
+                                            class="text-green-600 hover:text-green-900" 
+                                            title="{{ $preregistro->grupoAsignado ? 'Reasignar grupo' : 'Asignar grupo' }}">
+                                        <i class="fas fa-users"></i>
+                                    </button>
+                                    @endif
+                                @endif
+
+                                <!-- Quitar grupo (solo si tiene grupo asignado) -->
+                                @if($preregistro->grupoAsignado && $preregistro->estado === 'asignado')
+                                <button onclick="mostrarModalQuitarGrupo({{ $preregistro->id }})" 
+                                        class="text-orange-600 hover:text-orange-900" title="Quitar grupo">
+                                    <i class="fas fa-user-minus"></i>
                                 </button>
                                 @endif
 
@@ -284,12 +295,6 @@
                                 <button onclick="mostrarModalPago({{ $preregistro->id }}, '{{ $preregistro->pago_estado }}')" 
                                         class="text-purple-600 hover:text-purple-900" title="Cambiar estado de pago">
                                     <i class="fas fa-money-bill-wave"></i>
-                                </button>
-
-                                <!-- Cambiar estado -->
-                                <button onclick="mostrarModalEstado({{ $preregistro->id }}, '{{ $preregistro->estado }}')" 
-                                        class="text-orange-600 hover:text-orange-900" title="Cambiar estado">
-                                    <i class="fas fa-exchange-alt"></i>
                                 </button>
 
                                 <!-- Cancelar preregistro -->
@@ -329,8 +334,8 @@
 
 <!-- Modales para acciones -->
 @include('coordinador.preregistros.modales.asignar-grupo')
-@include('coordinador.preregistros.modales.cambiar-estado')
 @include('coordinador.preregistros.modales.cambiar-pago')
+@include('coordinador.preregistros.modales.quitar-grupo') {{-- NUEVO --}}
 
 @push('scripts')
 <script>
@@ -417,36 +422,30 @@ document.getElementById('selectGrupo').addEventListener('change', function() {
     }
 });
 
-// Modal de Cambiar Estado
-function mostrarModalEstado(preregistroId, estadoActual) {
+// Modal de Quitar Grupo - NUEVA FUNCIÓN
+function mostrarModalQuitarGrupo(preregistroId) {
     const preregistro = preregistros[preregistroId];
     if (!preregistro) return;
     
-    document.getElementById('estadoPreregistroId').value = preregistroId;
-    document.getElementById('formCambiarEstado').action = `/coordinador/preregistros/${preregistroId}/cambiar-estado`;
-    document.getElementById('selectEstado').value = estadoActual;
+    document.getElementById('quitarGrupoPreregistroId').value = preregistroId;
+    document.getElementById('formQuitarGrupo').action = `/coordinador/preregistros/${preregistroId}/quitar-grupo`;
     
-    // Actualizar información
-    document.getElementById('infoActualEstudiante').querySelector('span').textContent = preregistro.nombre;
-    document.getElementById('infoActualEstado').querySelector('span').textContent = preregistro.estado_texto;
-    document.getElementById('infoActualGrupo').querySelector('span').textContent = preregistro.grupo_asignado;
+    // Actualizar información en el modal
+    const infoDiv = document.getElementById('infoQuitarGrupo');
+    infoDiv.innerHTML = `
+        <div class="space-y-2">
+            <p><strong>Estudiante:</strong> ${preregistro.nombre}</p>
+            <p><strong>Grupo actual:</strong> ${preregistro.grupo_asignado}</p>
+            <p><strong>Nivel:</strong> ${preregistro.nivel_texto}</p>
+            <p><strong>Estado actual:</strong> ${preregistro.estado_texto}</p>
+        </div>
+    `;
     
-    // Mostrar/ocultar advertencias
-    const advertencia = document.getElementById('advertenciaEstado');
-    const textoAdvertencia = document.getElementById('textoAdvertencia');
-    
-    if (estadoActual === 'asignado') {
-        advertencia.classList.remove('hidden');
-        textoAdvertencia.textContent = 'Al cambiar el estado se liberará la asignación del grupo actual.';
-    } else {
-        advertencia.classList.add('hidden');
-    }
-    
-    document.getElementById('modalCambiarEstado').classList.remove('hidden');
+    document.getElementById('modalQuitarGrupo').classList.remove('hidden');
 }
 
-function cerrarModalEstado() {
-    document.getElementById('modalCambiarEstado').classList.add('hidden');
+function cerrarModalQuitarGrupo() {
+    document.getElementById('modalQuitarGrupo').classList.add('hidden');
 }
 
 // Modal de Cambiar Pago
@@ -465,13 +464,23 @@ function mostrarModalPago(preregistroId, estadoPagoActual) {
     
     // Mostrar info si se selecciona pagado
     const infoPagado = document.getElementById('infoPagoPagado');
-    document.getElementById('selectPagoEstado').addEventListener('change', function() {
+    const selectPagoEstado = document.getElementById('selectPagoEstado');
+    
+    // Configurar evento change
+    selectPagoEstado.addEventListener('change', function() {
         if (this.value === 'pagado') {
             infoPagado.classList.remove('hidden');
         } else {
             infoPagado.classList.add('hidden');
         }
     });
+    
+    // Estado inicial
+    if (selectPagoEstado.value === 'pagado') {
+        infoPagado.classList.remove('hidden');
+    } else {
+        infoPagado.classList.add('hidden');
+    }
     
     document.getElementById('modalCambiarPago').classList.remove('hidden');
 }
@@ -482,7 +491,7 @@ function cerrarModalPago() {
 
 // Cerrar modales al hacer click fuera
 document.addEventListener('click', function(e) {
-    const modales = ['modalAsignarGrupo', 'modalCambiarEstado', 'modalCambiarPago'];
+    const modales = ['modalAsignarGrupo', 'modalCambiarEstado', 'modalCambiarPago', 'modalQuitarGrupo'];
     modales.forEach(modalId => {
         const modal = document.getElementById(modalId);
         if (modal && e.target === modal) {
@@ -497,6 +506,7 @@ document.addEventListener('keydown', function(e) {
         document.getElementById('modalAsignarGrupo').classList.add('hidden');
         document.getElementById('modalCambiarEstado').classList.add('hidden');
         document.getElementById('modalCambiarPago').classList.add('hidden');
+        document.getElementById('modalQuitarGrupo').classList.add('hidden');
     }
 });
 </script>

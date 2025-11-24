@@ -29,7 +29,7 @@ class Grupo extends Model
         'estudiantes_inscritos' => 'integer'
     ];
 
-    // ESTADOS DEL GRUPO
+    // ESTADOS DEL GRUPO - SEGÚN LA CONSTRAINT DE LA BD
     const ESTADOS = [
         'planificado' => 'Planificado',
         'con_profesor' => 'Con Profesor', 
@@ -50,22 +50,64 @@ class Grupo extends Model
     // LETRAS DISPONIBLES
     const LETRAS_GRUPO = ['A', 'B', 'C', 'D', 'E', 'F'];
 
-    // 🔗 RELACIONES (sin cambios)
-    public function periodo() { return $this->belongsTo(Periodo::class); }
-    public function horario() { return $this->belongsTo(HorarioPeriodo::class, 'horario_periodo_id'); }
-    public function aula() { return $this->belongsTo(Aula::class, 'aula_id'); }
-    public function profesor() { return $this->belongsTo(Profesor::class, 'profesor_id'); }
-    public function preregistros() { return $this->hasMany(Preregistro::class, 'grupo_asignado_id'); }
-    public function estudiantesActivos() { return $this->preregistros()->whereIn('estado', ['asignado', 'cursando']); }
+    // 🔗 RELACIONES
+    public function periodo() 
+    { 
+        return $this->belongsTo(Periodo::class); 
+    }
+    
+    public function horario() 
+    { 
+        return $this->belongsTo(HorarioPeriodo::class, 'horario_periodo_id'); 
+    }
+    
+    public function aula() 
+    { 
+        return $this->belongsTo(Aula::class, 'aula_id'); 
+    }
+    
+    public function profesor() 
+    { 
+        return $this->belongsTo(Profesor::class, 'profesor_id', 'id_profesor');
+    }
 
-    // 🎯 SCOPES MEJORADOS
-    public function scopeActivos($query) { return $query->where('estado', 'activo'); }
-    public function scopePlanificados($query) { return $query->where('estado', 'planificado'); }
-    public function scopePorNivel($query, $nivel) { return $query->where('nivel_ingles', $nivel); }
-    public function scopePorPeriodo($query, $periodoId) { return $query->where('periodo_id', $periodoId); }
-    public function scopeConCapacidad($query) { return $query->whereRaw('estudiantes_inscritos < capacidad_maxima'); }
+    public function preregistros() 
+    { 
+        return $this->hasMany(Preregistro::class, 'grupo_asignado_id'); 
+    }
+    
+    public function estudiantesActivos() 
+    { 
+        return $this->preregistros()->whereIn('estado', ['asignado', 'cursando']); 
+    }
 
-    // ✅ NUEVO SCOPE: Grupos que se solapan en horario
+    // 🎯 SCOPES
+    public function scopeActivos($query) 
+    { 
+        return $query->where('estado', 'activo'); 
+    }
+    
+    public function scopePlanificados($query) 
+    { 
+        return $query->where('estado', 'planificado'); 
+    }
+    
+    public function scopePorNivel($query, $nivel) 
+    { 
+        return $query->where('nivel_ingles', $nivel); 
+    }
+    
+    public function scopePorPeriodo($query, $periodoId) 
+    { 
+        return $query->where('periodo_id', $periodoId); 
+    }
+    
+    public function scopeConCapacidad($query) 
+    { 
+        return $query->whereRaw('estudiantes_inscritos < capacidad_maxima'); 
+    }
+
+    // SCOPE: Grupos que se solapan en horario
     public function scopeSolapados($query, $horarioId, $aulaId = null, $profesorId = null)
     {
         return $query->where('horario_periodo_id', $horarioId)
@@ -80,7 +122,7 @@ class Grupo extends Model
             ->whereNotIn('estado', ['cancelado']);
     }
 
-    // ✅ ACCESORES (mejorados)
+    // ✅ ACCESORES
     public function getNombreCompletoAttribute()
     {
         return "{$this->nivel_ingles}-{$this->letra_grupo}";
@@ -124,7 +166,7 @@ class Grupo extends Model
         return self::ESTADOS[$this->estado] ?? $this->estado;
     }
 
-    // ✅ MÉTODOS DE NEGOCIO MEJORADOS
+    // ✅ MÉTODOS DE NEGOCIO
     public function tieneCapacidad()
     {
         return $this->estudiantes_inscritos < $this->capacidad_maxima;
@@ -265,7 +307,7 @@ class Grupo extends Model
     /**
      * Validar asignación de profesor
      */
-   public function validarAsignacionProfesor($profesorId)
+    public function validarAsignacionProfesor($profesorId)
     {
         $profesor = Profesor::find($profesorId);
         if (!$profesor) {
@@ -285,6 +327,7 @@ class Grupo extends Model
 
         return true;
     }
+
     /**
      * Obtener letras disponibles para un nivel y periodo
      */

@@ -8,7 +8,7 @@ use App\Http\Controllers\HorarioController;
 use App\Http\Controllers\PreregistroController;
 use App\Http\Controllers\CoordinadorPreregistroController;
 use App\Http\Controllers\CoordinadorGrupoController;
-
+use App\Http\Controllers\CoordinadorPanelVisualController; 
 
 // Rutas públicas
 Route::get('/', function () {
@@ -57,6 +57,9 @@ Route::middleware(['auth:coordinador'])->group(function () {
     Route::get('/coordinador', [AuthController::class, 'coordinadorDashboard'])
         ->name('coordinador.dashboard');
 
+    Route::get('/coordinador/panel-visual', [CoordinadorPanelVisualController::class, 'index'])
+        ->name('coordinador.panel-visual');
+        
     // Gestión de Profesores - RUTAS COMPLETAS
     Route::prefix('coordinador/profesores')->group(function () {
         Route::get('/', [ProfesorController::class, 'index'])
@@ -177,14 +180,11 @@ Route::prefix('coordinador/aulas')->group(function () {
         Route::post('/{id}/asignar-estudiante', [CoordinadorGrupoController::class, 'asignarEstudiante'])->name('asignarEstudiante');
         Route::post('/{id}/remover-estudiante', [CoordinadorGrupoController::class, 'removerEstudiante'])->name('removerEstudiante');
         Route::post('/{id}/cambiar-estado', [CoordinadorGrupoController::class, 'cambiarEstado'])->name('cambiarEstado');
-        
-        // Nuevas rutas para modales
-        Route::get('/{id}/asignar-profesor', [CoordinadorGrupoController::class, 'asignarProfesor'])->name('asignarProfesor');
-        Route::post('/{id}/asignar-profesor', [CoordinadorGrupoController::class, 'procesarAsignarProfesor'])->name('procesarAsignarProfesor');
-        Route::get('/{id}/asignar-aula', [CoordinadorGrupoController::class, 'asignarAula'])->name('asignarAula');
-        Route::post('/{id}/asignar-aula', [CoordinadorGrupoController::class, 'procesarAsignarAula'])->name('procesarAsignarAula');
-        Route::post('/{id}/activar', [CoordinadorGrupoController::class, 'activarGrupo'])->name('activarGrupo');
     });
+
+    Route::put('/coordinador/grupos/{id}', [CoordinadorGrupoController::class, 'update'])
+    ->name('coordinador.grupos.update')
+    ->middleware('web');
 
 
     Route::prefix('coordinador/preregistros')->name('coordinador.preregistros.')->group(function () {
@@ -205,6 +205,10 @@ Route::prefix('coordinador/aulas')->group(function () {
         Route::post('/{id}/cancelar', [CoordinadorPreregistroController::class, 'cancelarPreregistro'])
             ->name('cancelar');
         
+        // ✅ CORREGIDO - quita el prefijo duplicado
+        Route::delete('/{preregistro}/quitar-grupo', [CoordinadorPreregistroController::class, 'quitarGrupo'])
+            ->name('quitar-grupo');
+
         // AJAX - Estudiantes por nivel
         Route::get('/estudiantes-por-nivel/{nivel}', [CoordinadorPreregistroController::class, 'obtenerEstudiantesPorNivel'])
             ->name('estudiantesPorNivel');

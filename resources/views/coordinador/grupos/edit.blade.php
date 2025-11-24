@@ -24,7 +24,7 @@
         </div>
 
         <!-- Formulario -->
-        <form action="{{ route('coordinador.grupos.update', $grupo->id) }}" method="POST">
+        <form action="{{ route('coordinador.grupos.update', $grupo->id) }}" method="POST" id="editGrupoForm">
             @csrf
             @method('PUT')
             
@@ -39,7 +39,32 @@
                         </div>
                     </div>
                     
-                    
+                    <!-- Información de Estado (SOLO LECTURA) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Estado Actual (Automático)
+                        </label>
+                        <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            @php
+                                $color = match ($grupo->estado) {
+                                    'en_curso'     => 'text-green-600',
+                                    'con_profesor' => 'text-blue-600',
+                                    'con_aula'     => 'text-purple-600',
+                                    'finalizado'   => 'text-gray-600',
+                                    'cancelado'    => 'text-red-600',
+                                    default        => 'text-yellow-600',
+                                };
+                            @endphp
+
+                            <p class="text-lg font-semibold {{ $color }}">
+                                {{ $grupo->estado_legible }}
+                            </p>
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                El estado se actualiza automáticamente al asignar/remover recursos
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Configuración Principal -->
@@ -55,7 +80,6 @@
                             @foreach($horarios as $horario)
                                 <option value="{{ $horario->id }}" {{ old('horario_periodo_id', $grupo->horario_periodo_id) == $horario->id ? 'selected' : '' }}>
                                     {{ $horario->nombre }} 
-                                  
                                 </option>
                             @endforeach
                         </select>
@@ -64,6 +88,16 @@
                         @enderror
                     </div>
 
+                    <!-- Periodo (solo lectura) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Periodo
+                        </label>
+                        <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <p class="text-lg font-semibold text-gray-900">{{ $grupo->periodo->nombre }}</p>
+                            <p class="text-sm text-gray-500 mt-1">El periodo no se puede modificar</p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Asignación de Recursos -->
@@ -77,8 +111,12 @@
                                 class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 @error('profesor_id') border-red-500 @enderror">
                             <option value="">Sin profesor asignado</option>
                             @foreach($profesores as $profesor)
-                                <option value="{{ $profesor->id }}" {{ old('profesor_id', $grupo->profesor_id) == $profesor->id ? 'selected' : '' }}>
-                                    {{ $profesor->nombre_profesor }} {{ $profesor->apellidos_profesor }}
+                                <option value="{{ $profesor->id_profesor }}" 
+                                    {{ old('profesor_id', $grupo->profesor_id) == $profesor->id_profesor ? 'selected' : '' }}>
+                                    {{ $profesor->nombre_profesor}}
+                                    @if($profesor->especialidad)
+                                        - {{ $profesor->especialidad }}
+                                    @endif
                                 </option>
                             @endforeach
                         </select>
@@ -123,58 +161,6 @@
                     @error('capacidad_maxima')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
-                    <div class="mt-2 p-3 bg-blue-50 rounded-lg">
-                        <p class="text-sm text-blue-700">
-                            <span class="font-semibold">{{ $grupo->estudiantes_inscritos }}</span> estudiantes actualmente inscritos
-                        </p>
-                        <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
-                            <div class="bg-blue-600 h-2 rounded-full" 
-                                 style="width: {{ $grupo->porcentaje_ocupacion }}%">
-                            </div>
-                        </div>
-                        <p class="text-xs text-blue-600 mt-1 text-right">
-                            {{ number_format($grupo->porcentaje_ocupacion, 1) }}% de ocupación
-                        </p>
-                    </div>
-                </div>
-
-                <!-- Información de Estado Actual -->
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <h3 class="text-sm font-medium text-gray-700 mb-3">Estado Actual del Grupo</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div class="text-center">
-                            <div class="p-2 bg-blue-100 rounded-lg text-blue-600 mb-1">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <p class="text-gray-600">Estudiantes</p>
-                            <p class="font-semibold text-gray-900">{{ $grupo->estudiantes_inscritos }}</p>
-                        </div>
-                        <div class="text-center">
-                            <div class="p-2 {{ $grupo->profesor ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600' }} rounded-lg mb-1">
-                                <i class="fas fa-user-tie"></i>
-                            </div>
-                            <p class="text-gray-600">Profesor</p>
-                            <p class="font-semibold text-gray-900">
-                                {{ $grupo->profesor ? 'Asignado' : 'Por asignar' }}
-                            </p>
-                        </div>
-                        <div class="text-center">
-                            <div class="p-2 {{ $grupo->aula ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600' }} rounded-lg mb-1">
-                                <i class="fas fa-door-open"></i>
-                            </div>
-                            <p class="text-gray-600">Aula</p>
-                            <p class="font-semibold text-gray-900">
-                                {{ $grupo->aula ? 'Asignada' : 'Por asignar' }}
-                            </p>
-                        </div>
-                        <div class="text-center">
-                            <div class="p-2 {{ $grupo->estado == 'activo' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600' }} rounded-lg mb-1">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <p class="text-gray-600">Estado</p>
-                            <p class="font-semibold text-gray-900">{{ $grupo->estado_texto }}</p>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -206,49 +192,7 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Actualizar estado automáticamente cuando se asignen profesor y aula
-    const profesorSelect = document.getElementById('profesor_id');
-    const aulaSelect = document.getElementById('aula_id');
-    const estadoSelect = document.getElementById('estado');
-
-    function actualizarEstadoSugerido() {
-        const tieneProfesor = profesorSelect.value !== '';
-        const tieneAula = aulaSelect.value !== '';
-        
-        if (tieneProfesor && tieneAula) {
-            // Si ambos están asignados, sugerir estado "activo"
-            if (estadoSelect.value === 'planificado' || estadoSelect.value === 'con_profesor' || estadoSelect.value === 'con_aula') {
-                if (confirm('¿Desea cambiar el estado del grupo a "Activo"?')) {
-                    estadoSelect.value = 'activo';
-                }
-            }
-        } else if (tieneProfesor) {
-            // Si solo tiene profesor, sugerir "con_profesor"
-            if (estadoSelect.value === 'planificado') {
-                estadoSelect.value = 'con_profesor';
-            }
-        } else if (tieneAula) {
-            // Si solo tiene aula, sugerir "con_aula"
-            if (estadoSelect.value === 'planificado') {
-                estadoSelect.value = 'con_aula';
-            }
-        }
-    }
-
-    profesorSelect.addEventListener('change', actualizarEstadoSugerido);
-    aulaSelect.addEventListener('change', actualizarEstadoSugerido);
-
-    // Validación de capacidad
-    const capacidadInput = document.getElementById('capacidad_maxima');
-    capacidadInput.addEventListener('change', function() {
-        const capacidad = parseInt(this.value);
-        const estudiantesInscritos = {{ $grupo->estudiantes_inscritos }};
-        
-        if (capacidad < estudiantesInscritos) {
-            alert(`⚠️ Advertencia: La capacidad (${capacidad}) no puede ser menor a los estudiantes inscritos (${estudiantesInscritos}).`);
-            this.value = estudiantesInscritos;
-        }
-    });
+    console.log('✅ Formulario de edición cargado correctamente');
 });
 </script>
 @endsection

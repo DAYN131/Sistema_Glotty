@@ -42,11 +42,11 @@ class Preregistro extends Model
 
     // Niveles disponibles
     const NIVELES = [
-        1 => 'Nivel 1 - Principiante',
-        2 => 'Nivel 2 - Básico', 
-        3 => 'Nivel 3 - Intermedio',
-        4 => 'Nivel 4 - Avanzado',
-        5 => 'Nivel 5 - Conversación'
+        1 => 'Nivel 1',
+        2 => 'Nivel 2', 
+        3 => 'Nivel 3',
+        4 => 'Nivel 4',
+        5 => 'Nivel 5'
     ];
 
     // Relaciones
@@ -177,7 +177,7 @@ class Preregistro extends Model
      */
     public function tieneProrroga()
     {
-        return $this->pago_estado === 'prorroga'; // ✅ NUEVO MÉTODO
+        return $this->pago_estado === 'prorroga'; 
     }
 
     /**

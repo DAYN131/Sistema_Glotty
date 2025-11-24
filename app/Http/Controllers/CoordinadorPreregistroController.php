@@ -189,48 +189,64 @@ class CoordinadorPreregistroController extends Controller
     /**
      * Asigna un preregistro a un grupo - válido para 'pagado' y 'prorroga'
      */
-    public function asignarGrupo(Request $request, $id)
-    {
-        $request->validate([
-            'grupo_id' => 'required|exists:grupos,id'
+public function asignarGrupo(Request $request, $id)
+{
+    $request->validate([
+        'grupo_id' => 'required|exists:grupos,id'
+    ]);
+
+    try {
+        $preregistro = Preregistro::findOrFail($id);
+        
+        if (!$preregistro->puedeSerAsignado()) {
+            return back()->with('error', 
+                $preregistro->pago_estado === 'pendiente' 
+                    ? 'Estudiante no ha pagado. ¿Desea dar prórroga?'
+                    : 'No se puede asignar grupo en el estado actual'
+            );
+        }
+
+        // Verificar que el grupo tenga capacidad
+        $grupo = Grupo::findOrFail($request->grupo_id);
+        if ($grupo->estudiantes_inscritos >= $grupo->capacidad_maxima) {
+            return back()->with('error', 'El grupo seleccionado no tiene capacidad disponible');
+        }
+
+        // Verificar que el nivel del grupo coincida
+        if ($grupo->nivel_ingles != $preregistro->nivel_solicitado) {
+            return back()->with('error', 'El nivel del grupo no coincide con el nivel solicitado');
+        }
+
+        // Si ya tenía grupo asignado, liberar el contador del grupo anterior
+        $grupoAnterior = null;
+        if ($preregistro->grupo_asignado_id && $preregistro->grupo_asignado_id != $request->grupo_id) {
+            $grupoAnterior = Grupo::find($preregistro->grupo_asignado_id);
+            if ($grupoAnterior && $grupoAnterior->estudiantes_inscritos > 0) {
+                $grupoAnterior->decrement('estudiantes_inscritos');
+            }
+        }
+
+        // Asignar nuevo grupo
+        $preregistro->update([
+            'grupo_asignado_id' => $request->grupo_id,
+            'estado' => 'asignado'
         ]);
 
-        try {
-            $preregistro = Preregistro::findOrFail($id);
-            
-            if (!$preregistro->puedeSerAsignado()) {
-                return back()->with('error', 
-                    $preregistro->pago_estado === 'pendiente' 
-                        ? 'Estudiante no ha pagado. ¿Desea dar prórroga?'
-                        : 'No se puede asignar grupo en el estado actual'
-                );
-            }
-
-            // Verificar que el grupo tenga capacidad
-            $grupo = Grupo::findOrFail($request->grupo_id);
-            if ($grupo->estudiantes_inscritos >= $grupo->capacidad_maxima) {
-                return back()->with('error', 'El grupo seleccionado no tiene capacidad disponible');
-            }
-
-            // Verificar que el nivel del grupo coincida
-            if ($grupo->nivel_ingles != $preregistro->nivel_solicitado) {
-                return back()->with('error', 'El nivel del grupo no coincide con el nivel solicitado');
-            }
-
-            $preregistro->update([
-                'grupo_asignado_id' => $request->grupo_id,
-                'estado' => 'asignado'
-            ]);
-
-            // Actualizar contador del grupo
+        // Actualizar contador del nuevo grupo (solo si es diferente al anterior)
+        if (!$grupoAnterior || $grupoAnterior->id != $grupo->id) {
             $grupo->increment('estudiantes_inscritos');
-
-            return back()->with('success', 'Estudiante asignado al grupo exitosamente.');
-
-        } catch (\Exception $e) {
-            return back()->with('error', 'Error al asignar preregistro: ' . $e->getMessage());
         }
+
+        $mensaje = $grupoAnterior 
+            ? 'Estudiante reasignado al grupo exitosamente.' 
+            : 'Estudiante asignado al grupo exitosamente.';
+
+        return back()->with('success', $mensaje);
+
+    } catch (\Exception $e) {
+        return back()->with('error', 'Error al asignar preregistro: ' . $e->getMessage());
     }
+}
 
     /**
      * Cambia el estado de pago de un preregistro - ACTUALIZADO CON PRÓRROGA
@@ -402,6 +418,60 @@ class CoordinadorPreregistroController extends Controller
             'total' => $estudiantes->count(),
             'nivel' => Preregistro::NIVELES[$nivel] ?? "Nivel $nivel"
         ]);
+    }
+
+
+        public function quitarGrupo(Request $request, $id)
+    {
+        try {
+            $preregistro = Preregistro::with('grupoAsignado')->findOrFail($id);
+            
+            // Validar que tenga grupo asignado
+            if (!$preregistro->grupo_asignado_id) {
+                return back()->with('error', 'Este preregistro no tiene grupo asignado.');
+            }
+
+            // Validar que esté en estado asignado
+            if ($preregistro->estado !== 'asignado') {
+                return back()->with('error', 'Solo se puede quitar grupo de preregistros en estado "asignado".');
+            }
+
+            // Guardar información para el log
+            $grupoAnterior = $preregistro->grupoAsignado;
+            $grupoId = $preregistro->grupo_asignado_id;
+
+            // Quitar la relación y cambiar estado a pendiente
+            $preregistro->update([
+                'grupo_asignado_id' => null,
+                'estado' => 'pendiente'
+            ]);
+
+            // Actualizar contador del grupo (decrementar estudiantes inscritos)
+            if ($grupoAnterior && $grupoAnterior->estudiantes_inscritos > 0) {
+                $grupoAnterior->decrement('estudiantes_inscritos');
+            }
+
+            // Log de la acción
+            \Log::info("Grupo quitado del preregistro", [
+                'preregistro_id' => $preregistro->id,
+                'estudiante' => $preregistro->usuario->nombre_completo ?? 'No disponible',
+                'grupo_anterior_id' => $grupoId,
+                'grupo_anterior_nombre' => $grupoAnterior->nombre_completo ?? 'No disponible',
+                'nivel' => $preregistro->nivel_solicitado,
+                'accion_por' => auth()->user()->name ?? 'Sistema'
+            ]);
+
+            return back()->with('success', 'Grupo quitado correctamente. El preregistro está nuevamente pendiente de asignación.');
+
+        } catch (\Exception $e) {
+            \Log::error("Error al quitar grupo del preregistro", [
+                'preregistro_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('error', 'Error al quitar el grupo: ' . $e->getMessage());
+        }
     }
 
     /**

@@ -212,5 +212,20 @@
             <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
         </div>
     </a>
+
+    <!-- Tarjeta Panel Visual -->
+    <a href="{{ route('coordinador.panel-visual') }}" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
+        <div class="flex items-center mb-5">
+            <div class="p-3 bg-purple-100 rounded-xl mr-4 group-hover:bg-purple-200 transition-smooth">
+                <i class="fas fa-calendar-alt text-purple-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800">Panel Visual</h3>
+        </div>
+        <p class="text-text-secondary mb-5">Vista general de horarios, aulas y grupos en tiempo real</p>
+        <div class="text-purple-600 font-medium group-hover:text-purple-700 transition-smooth flex items-center">
+            Ver Panel
+            <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
+        </div>
+    </a>
 </div>
 @endsection
