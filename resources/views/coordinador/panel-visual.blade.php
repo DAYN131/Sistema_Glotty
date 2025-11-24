@@ -1,4 +1,3 @@
-<!-- resources/views/coordinador/panel-visual.blade.php -->
 @extends('layouts.coordinador')
 
 @section('title', 'Panel Visual - Glotty')
@@ -6,7 +5,16 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto">
-    <!-- Filtros -->
+    
+    {{-- CAMBIO AQUÍ: Botón superior para regresar al Panel --}}
+    <div class="flex justify-end mb-6">
+        <a href="{{ url('/coordinador') }}" 
+           class="bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg shadow-sm transition-colors flex items-center space-x-2 text-sm font-medium">
+            <i class="fas fa-arrow-left"></i>
+            <span>Volver al Panel</span>
+        </a>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-card p-6 mb-6">
         <div class="flex flex-col md:flex-row gap-4">
             <div class="flex-1">
@@ -33,13 +41,11 @@
         </div>
     </div>
 
-    <!-- Panel Visual -->
     <div class="bg-white rounded-2xl shadow-card overflow-hidden">
         <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-            <<h2 class="text-xl font-bold text-white">Horario General - {{ $periodoActivo->nombre_periodo ?? 'Sin Periodo' }}</h2>
+            <h2 class="text-xl font-bold text-white">Horario General - {{ $periodoActivo->nombre_periodo ?? 'Sin Periodo' }}</h2>
         </div>
 
-        <!-- Cabecera de días -->
         <div class="grid grid-cols-8 bg-slate-50 border-b border-slate-200">
             <div class="p-4 font-medium text-slate-500">Horario</div>
             @foreach(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] as $dia)
@@ -47,16 +53,13 @@
             @endforeach
         </div>
 
-        <!-- Bloques de horario -->
         @foreach($horarios as $hora)
         <div class="grid grid-cols-8 border-b border-slate-200 hover:bg-slate-50">
-            <!-- Columna de hora -->
             <div class="p-4 border-r border-slate-200">
                 <div class="font-medium text-slate-900">{{ $hora['rango'] }}</div>
                 <div class="text-sm text-slate-500">{{ $hora['tipo'] }}</div>
             </div>
 
-            <!-- Celdas por día -->
             @foreach(['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'] as $dia)
             <div class="p-2 border-r border-slate-200 min-h-24" data-dia="{{ $dia }}" data-horario="{{ $hora['id'] }}">
                 @php
@@ -95,7 +98,6 @@
                         </div>
                     </div>
                     
-                    <!-- Barra de progreso -->
                     <div class="mt-2 w-full bg-slate-200 rounded-full h-1.5">
                         <div class="h-1.5 rounded-full 
                             {{ $grupo['ocupacion'] >= 90 ? 'bg-red-500' : 
@@ -118,7 +120,6 @@
         @endforeach
     </div>
 
-    <!-- Leyenda -->
     <div class="mt-6 bg-white rounded-2xl shadow-card p-6">
         <h3 class="text-lg font-semibold text-slate-800 mb-4">Leyenda</h3>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
