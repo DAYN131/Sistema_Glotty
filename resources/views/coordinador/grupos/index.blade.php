@@ -6,7 +6,16 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto">
-    <!-- Estadísticas Rápidas -->
+    
+    {{-- CAMBIO AQUÍ: Botón superior para regresar al Panel --}}
+    <div class="flex justify-end mb-6">
+        <a href="{{ url('/coordinador') }}" 
+           class="bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg shadow-sm transition-colors flex items-center space-x-2 text-sm font-medium">
+            <i class="fas fa-arrow-left"></i>
+            <span>Volver al Panel</span>
+        </a>
+    </div>
+
     <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
         <div class="bg-white p-4 rounded-xl shadow-card">
             <div class="flex items-center">
@@ -78,7 +87,6 @@
         </div>
     </div>
 
-    <!-- Barra de Acciones -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
             <h2 class="text-2xl font-bold text-gray-800">Todos los Grupos</h2>
@@ -93,7 +101,6 @@
         </div>
     </div>
 
-    <!-- Filtros -->
     <div class="bg-white rounded-xl shadow-card p-4 mb-6">
         <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
@@ -140,7 +147,6 @@
         </form>
     </div>
 
-    <!-- Tabla de Grupos -->
     <div class="bg-white rounded-xl shadow-card overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -214,21 +220,18 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2">
-                                <!-- Ver detalles -->
                                 <a href="{{ route('coordinador.grupos.show', $grupo->id) }}" 
                                 class="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded" 
                                 title="Ver detalles">
                                     <i class="fas fa-eye"></i>
                                 </a>
 
-                                <!-- Editar grupo -->
                                 <a href="{{ route('coordinador.grupos.edit', $grupo->id) }}" 
                                 class="text-green-600 hover:text-green-900 transition-colors p-1 rounded" 
                                 title="Editar grupo">
                                     <i class="fas fa-edit"></i>
                                 </a>
 
-                                <!-- Indicadores de estado -->
                                 @if($grupo->estado == 'activo' && $grupo->tieneCapacidad())
                                 <span class="text-green-600 p-1 rounded" title="Puede recibir estudiantes">
                                     <i class="fas fa-user-plus"></i>
@@ -275,7 +278,6 @@
             </table>
         </div>
 
-        <!-- Paginación -->
         @if($grupos->hasPages())
         <div class="bg-white px-6 py-4 border-t border-gray-200">
             {{ $grupos->links() }}

@@ -4,6 +4,15 @@
 @section('header-title', 'Gestión de Aulas')
 
 @section('content')
+    {{-- CAMBIO AQUÍ: Botón superior para regresar al Panel --}}
+    <div class="flex justify-end mb-6">
+        <a href="{{ url('/coordinador') }}" 
+           class="bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg shadow-sm transition-smooth flex items-center space-x-2 text-sm font-medium">
+            <i class="fas fa-arrow-left"></i>
+            <span>Volver al Panel</span>
+        </a>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div class="bg-white rounded-2xl shadow-card p-6">
             <div class="flex items-center space-x-4">
@@ -250,5 +259,3 @@
         }, 5000);
     </script>
 @endsection
-
-

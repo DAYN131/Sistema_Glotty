@@ -5,8 +5,17 @@
 @section('header-title', 'Gestión de Profesores')
 
 @section('content')
+
+    {{-- CAMBIO AQUÍ: Botón superior para regresar al Panel --}}
+    <div class="flex justify-end mb-6">
+        <a href="{{ url('/coordinador') }}" 
+           class="bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg shadow-sm transition-all duration-200 flex items-center space-x-2 text-sm font-medium">
+            <i class="fas fa-arrow-left"></i>
+            <span>Volver al Panel</span>
+        </a>
+    </div>
+
 <div class="mb-8">
-    <!-- Header espectacular -->
     <div class="bg-gradient-to-r from-blue-600 to-purple-700 rounded-2xl shadow-soft p-8 text-white">
         <div class="flex items-center justify-between">
             <div>
@@ -32,9 +41,7 @@
     </div>
 </div>
 
-<!-- Card principal -->
 <div class="bg-white rounded-2xl shadow-card overflow-hidden border border-gray-100">
-    <!-- Card Header con acciones -->
     <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-5 border-b border-gray-200">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center space-y-4 md:space-y-0">
             <div>
@@ -49,7 +56,6 @@
         </div>
     </div>
 
-    <!-- Table mejorada -->
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
@@ -64,7 +70,6 @@
             <tbody class="bg-white divide-y divide-gray-200">
                 @forelse($profesores as $profesor)
                 <tr class="hover:bg-blue-50 transition-all duration-200 group">
-                    <!-- Columna Profesor -->
                     <td class="px-6 py-5 whitespace-nowrap">
                         <div class="flex items-center">
                             <div class="flex-shrink-0 h-12 w-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
@@ -82,7 +87,6 @@
                         </div>
                     </td>
 
-                    <!-- Columna Información -->
                     <td class="px-6 py-5 whitespace-nowrap">
                         <div class="space-y-1">
                             <div class="text-sm">
@@ -96,7 +100,6 @@
                         </div>
                     </td>
 
-                    <!-- Columna Contacto -->
                     <td class="px-6 py-5 whitespace-nowrap">
                         <div class="space-y-1">
                             <div class="text-sm text-gray-900 flex items-center">
@@ -110,7 +113,6 @@
                         </div>
                     </td>
 
-                    <!-- Columna Estado -->
                     <td class="px-6 py-5 whitespace-nowrap">
                         <div class="flex flex-col space-y-2">
                            
@@ -120,7 +122,6 @@
                         </div>
                     </td>
 
-                    <!-- Columna Acciones -->
                     <td class="px-6 py-5 whitespace-nowrap">
                         <div class="flex space-x-2">
                             <a href="{{ route('coordinador.profesores.edit', $profesor->id_profesor) }}" 
@@ -164,7 +165,6 @@
         </table>
     </div>
 
-    <!-- Footer de la tabla -->
     @if($profesores->count() > 0)
     <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
         <div class="flex justify-between items-center text-sm text-gray-600">
@@ -180,7 +180,6 @@
     @endif
 </div>
 
-<!-- Script para mejoras interactivas -->
 <script>
     // Efectos hover suaves para las filas
     document.addEventListener('DOMContentLoaded', function() {

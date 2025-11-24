@@ -6,7 +6,16 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto">
-    <!-- Alertas -->
+    
+    {{-- CAMBIO AQUÍ: Botón superior para regresar al Panel --}}
+    <div class="flex justify-end mb-6">
+        <a href="{{ url('/coordinador') }}" 
+           class="bg-white text-gray-600 hover:bg-gray-50 border border-gray-200 px-4 py-2 rounded-lg shadow-sm transition-colors flex items-center space-x-2 text-sm font-medium">
+            <i class="fas fa-arrow-left"></i>
+            <span>Volver al Panel</span>
+        </a>
+    </div>
+
     @if(session('success'))
         <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6 rounded-r-lg">
             <div class="flex items-center">
@@ -25,11 +34,9 @@
         </div>
     @endif
 
-    <!-- Filtros -->
     <div class="bg-white rounded-2xl shadow-card p-6 mb-6">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div class="flex flex-col sm:flex-row gap-4 flex-1">
-                <!-- Filtro por nivel -->
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Filtrar por nivel</label>
                     <select id="filtroNivel" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -42,7 +49,6 @@
                     </select>
                 </div>
 
-                <!-- Filtro por estado -->
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Filtrar por estado</label>
                     <select id="filtroEstado" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -55,7 +61,6 @@
                     </select>
                 </div>
 
-                <!-- Filtro por estado de pago -->
                 <div class="flex-1">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Filtrar por pago</label>
                     <select id="filtroPago" class="w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -83,7 +88,6 @@
         </div>
     </div>
 
-    <!-- Estadísticas rápidas -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white p-4 rounded-xl shadow-card border border-slate-200">
             <div class="flex items-center">
@@ -134,7 +138,6 @@
         </div>
     </div>
 
-    <!-- Lista de preregistros -->
     <div class="bg-white rounded-2xl shadow-card overflow-hidden">
         <div class="bg-gradient-to-r from-slate-600 to-slate-700 px-6 py-4">
             <h2 class="text-xl font-bold text-white">Lista de Preregistros</h2>
@@ -156,7 +159,6 @@
                 <tbody class="bg-white divide-y divide-slate-200">
                     @forelse($preregistros as $preregistro)
                     <tr class="hover:bg-slate-50 transition-colors">
-                        <!-- Información del estudiante -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
@@ -178,19 +180,17 @@
                             </div>
                         </td>
 
-                        <!-- Nivel solicitado -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
                                 <span class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold mr-2">
                                     {{ $preregistro->nivel_solicitado }}
                                 </span>
                                 <span class="text-sm font-medium text-slate-700">
-                                    {{ $preregistro->nivel }}
+                                    {{ $preregistro->nivel_formateado }}
                                 </span>
                             </div>
                         </td>
 
-                        <!-- Horario preferido -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             @if($preregistro->horarioPreferido)
                                 <div class="text-sm text-slate-900">{{ $preregistro->horarioPreferido->nombre }}</div>
@@ -217,7 +217,6 @@
                             @endif
                         </td>
 
-                        <!-- Estado -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             @php
                                 $estadoColors = [
@@ -234,7 +233,6 @@
                             </span>
                         </td>
 
-                        <!-- Estado de pago -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             @php
                                 $pagoColors = [
@@ -249,7 +247,6 @@
                             </span>
                         </td>
 
-                        <!-- Grupo asignado -->
                         <td class="px-6 py-4 whitespace-nowrap">
                             @if($preregistro->grupoAsignado)
                                 <div class="text-sm font-medium text-slate-900">
@@ -263,16 +260,13 @@
                             @endif
                         </td>
 
-                        <!-- Acciones -->
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center space-x-2">
-                                <!-- Ver detalles -->
                                 <a href="{{ route('coordinador.preregistros.show', $preregistro->id) }}" 
                                    class="text-blue-600 hover:text-blue-900" title="Ver detalles">
                                     <i class="fas fa-eye"></i>
                                 </a>
 
-                                <!-- Asignar/Reasignar grupo -->
                                 @if($preregistro->pago_estado === 'pagado')
                                     @if($preregistro->estado === 'pendiente' || $preregistro->estado === 'asignado')
                                     <button onclick="mostrarModalAsignar({{ $preregistro->id }})" 
@@ -283,7 +277,6 @@
                                     @endif
                                 @endif
 
-                                <!-- Quitar grupo (solo si tiene grupo asignado) -->
                                 @if($preregistro->grupoAsignado && $preregistro->estado === 'asignado')
                                 <button onclick="mostrarModalQuitarGrupo({{ $preregistro->id }})" 
                                         class="text-orange-600 hover:text-orange-900" title="Quitar grupo">
@@ -291,13 +284,11 @@
                                 </button>
                                 @endif
 
-                                <!-- Cambiar estado de pago -->
                                 <button onclick="mostrarModalPago({{ $preregistro->id }}, '{{ $preregistro->pago_estado }}')" 
                                         class="text-purple-600 hover:text-purple-900" title="Cambiar estado de pago">
                                     <i class="fas fa-money-bill-wave"></i>
                                 </button>
 
-                                <!-- Cancelar preregistro -->
                                 @if($preregistro->puedeSerCancelado())
                                 <form action="{{ route('coordinador.preregistros.cancelar', $preregistro->id) }}" 
                                       method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de cancelar este preregistro?')">
@@ -323,7 +314,6 @@
             </table>
         </div>
 
-        <!-- Paginación -->
         @if($preregistros->hasPages())
         <div class="bg-slate-50 px-6 py-4 border-t border-slate-200">
             {{ $preregistros->links() }}
@@ -332,14 +322,13 @@
     </div>
 </div>
 
-<!-- Modales para acciones -->
 @include('coordinador.preregistros.modales.asignar-grupo')
 @include('coordinador.preregistros.modales.cambiar-pago')
 @include('coordinador.preregistros.modales.quitar-grupo') {{-- NUEVO --}}
 
 @push('scripts')
 <script>
-// Datos de preregistros (podrías cargarlos via AJAX si son muchos)
+// Datos de preregistros
 const preregistros = {!! $preregistros->keyBy('id')->map(function($p) {
     return [
         'nombre' => $p->usuario->nombre_completo ?? 'No disponible',
@@ -422,7 +411,7 @@ document.getElementById('selectGrupo').addEventListener('change', function() {
     }
 });
 
-// Modal de Quitar Grupo - NUEVA FUNCIÓN
+// Modal de Quitar Grupo
 function mostrarModalQuitarGrupo(preregistroId) {
     const preregistro = preregistros[preregistroId];
     if (!preregistro) return;
@@ -489,7 +478,7 @@ function cerrarModalPago() {
     document.getElementById('modalCambiarPago').classList.add('hidden');
 }
 
-// Cerrar modales al hacer click fuera
+// Cerrar modales al hacer click fuera y con ESC
 document.addEventListener('click', function(e) {
     const modales = ['modalAsignarGrupo', 'modalCambiarEstado', 'modalCambiarPago', 'modalQuitarGrupo'];
     modales.forEach(modalId => {
@@ -500,11 +489,10 @@ document.addEventListener('click', function(e) {
     });
 });
 
-// Cerrar modales con ESC key
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         document.getElementById('modalAsignarGrupo').classList.add('hidden');
-        document.getElementById('modalCambiarEstado').classList.add('hidden');
+        // document.getElementById('modalCambiarEstado').classList.add('hidden'); // No usado en este archivo
         document.getElementById('modalCambiarPago').classList.add('hidden');
         document.getElementById('modalQuitarGrupo').classList.add('hidden');
     }
