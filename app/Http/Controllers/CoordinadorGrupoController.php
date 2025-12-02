@@ -286,23 +286,24 @@ public function update(Request $request, $id)
     /**
      * Determina el estado automáticamente
      */
-    private function determinarEstado(Request $request, Grupo $grupo)
+   private function determinarEstado(Request $request, Grupo $grupo)
     {
-        // Si el grupo ya estaba activo o cancelado, mantener ese estado
-        $estadosFinales = ['activo', 'cancelado'];
-        
-        // Si ya está activo o cancelado, mantener ese estado
-        if (in_array($grupo->estado, $estadosFinales)) {
-            return $grupo->estado;
+        // Si el grupo ya estaba cancelado, mantenerlo
+        if ($grupo->estado == 'cancelado') {
+            return 'cancelado';
         }
-
-        // Manejar valores nulos/vacíos
+        
+        //  Si tiene estudiantes, siempre es 'activo'
+        if ($grupo->estudiantes_inscritos > 0) {
+            return 'activo';
+        }
+        
+        // Si no tiene estudiantes, determinar por configuración
         $tieneProfesor = ($request->profesor_id !== null && $request->profesor_id !== '');
         $tieneAula = ($request->aula_id !== null && $request->aula_id !== '');
 
-        // Lógica automática de estados
         if ($tieneProfesor && $tieneAula) {
-            return 'activo';
+            return 'con_profesor'; // O 'con_aula', ambos son válidos
         } elseif ($tieneProfesor) {
             return 'con_profesor';
         } elseif ($tieneAula) {
@@ -331,7 +332,7 @@ public function update(Request $request, $id)
     /**
      * Asigna un estudiante al grupo
      */
-    public function asignarEstudiante(Request $request, $id)
+   public function asignarEstudiante(Request $request, $id)
     {
         $grupo = Grupo::findOrFail($id);
         
@@ -350,7 +351,13 @@ public function update(Request $request, $id)
                 return back()->with('error', 'El grupo no tiene capacidad disponible.');
             }
 
+            // Asignar estudiante
             $grupo->asignarEstudiante($preregistro->id);
+            
+            // Cambiar estado a 'activo' si es el primer estudiante
+            if ($grupo->estudiantes_inscritos == 1 && $grupo->estado != 'activo') {
+                $grupo->update(['estado' => 'activo']);
+            }
 
             return back()->with('success', 'Estudiante asignado al grupo exitosamente.');
 
@@ -362,7 +369,7 @@ public function update(Request $request, $id)
     /**
      * Remueve un estudiante del grupo
      */
-    public function removerEstudiante(Request $request, $id)
+   public function removerEstudiante(Request $request, $id)
     {
         $grupo = Grupo::findOrFail($id);
         
@@ -372,6 +379,20 @@ public function update(Request $request, $id)
 
         try {
             $grupo->removerEstudiante($request->preregistro_id);
+            
+            // ✅ NUEVO: Si ya no tiene estudiantes, cambiar a 'planificado'
+            if ($grupo->estudiantes_inscritos == 0 && $grupo->estado == 'activo') {
+                // Determinar estado basado en si tiene profesor/aula
+                $estado = 'planificado';
+                if ($grupo->profesor_id && $grupo->aula_id) {
+                    $estado = 'con_profesor'; // o mantener 'activo' si prefieres
+                } elseif ($grupo->profesor_id) {
+                    $estado = 'con_profesor';
+                } elseif ($grupo->aula_id) {
+                    $estado = 'con_aula';
+                }
+                $grupo->update(['estado' => $estado]);
+            }
 
             return back()->with('success', 'Estudiante removido del grupo exitosamente.');
 
@@ -379,11 +400,10 @@ public function update(Request $request, $id)
             return back()->with('error', $e->getMessage());
         }
     }
-
     /**
      * Cambia el estado de un grupo
      */
-    public function cambiarEstado(Request $request, $id)
+   public function cambiarEstado(Request $request, $id)
     {
         $grupo = Grupo::findOrFail($id);
 
@@ -392,17 +412,18 @@ public function update(Request $request, $id)
         ]);
 
         try {
-            // Validaciones específicas por estado
-            if ($request->estado === 'activo' && !$grupo->puedeSerActivo()) {
+            // ✅ REVISADO: 'activo' ahora requiere estudiantes, no profesor/aula
+            if ($request->estado === 'activo' && $grupo->estudiantes_inscritos == 0) {
                 return back()->with('error', 
-                    'El grupo necesita profesor, aula y capacidad disponible para activarse.'
+                    'No se puede activar un grupo sin estudiantes.'
                 );
             }
 
-            if ($request->estado === 'cancelado' && !$grupo->puedeSerCancelado()) {
-                return back()->with('error', 
-                    'No se puede cancelar un grupo con estudiantes inscritos.'
+            if ($request->estado === 'cancelado' && $grupo->estudiantes_inscritos > 0) {
+                return back()->with('warning', 
+                    'Este grupo tiene estudiantes. ¿Seguro que quieres cancelarlo?'
                 );
+                // Podrías agregar confirmación aquí
             }
 
             $grupo->update(['estado' => $request->estado]);
@@ -413,4 +434,5 @@ public function update(Request $request, $id)
             return back()->with('error', 'Error al cambiar estado: ' . $e->getMessage());
         }
     }
+    
 }

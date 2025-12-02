@@ -13,7 +13,7 @@ class Preregistro extends Model
         'periodo_id',
         'nivel_solicitado',
         'horario_preferido_id',
-        'semestre_carrera',
+        'semestre_actual',
         'grupo_asignado_id',
         'estado',
         'pago_estado'
@@ -35,7 +35,7 @@ class Preregistro extends Model
     // Estados de pago - ACTUALIZADO CON PRÓRROGA
     const PAGO_ESTADOS = [
         'pendiente' => 'Pendiente de Pago',
-        'prorroga' => 'En Prórroga', // ✅ NUEVO
+        'prorroga' => 'En Prórroga', 
         'pagado' => 'Pagado',
         'rechazado' => 'Pago Rechazado'
     ];
@@ -113,7 +113,7 @@ class Preregistro extends Model
         return self::PAGO_ESTADOS[$this->pago_estado] ?? $this->pago_estado;
     }
 
-    // ✅ MÉTODOS DE NEGOCIO ACTUALIZADOS CON PRÓRROGA
+    //  MÉTODOS DE NEGOCIO ACTUALIZADOS CON PRÓRROGA
 
     /**
      * Puede ser asignado a grupo si:
@@ -227,7 +227,7 @@ class Preregistro extends Model
     {
         return match($this->pago_estado) {
             'pendiente' => 'yellow',
-            'prorroga' => 'blue', // ✅ NUEVO COLOR
+            'prorroga' => 'blue', // 
             'pagado' => 'green',
             'rechazado' => 'red',
             default => 'gray'

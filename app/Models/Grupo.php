@@ -166,7 +166,6 @@ class Grupo extends Model
         return self::ESTADOS[$this->estado] ?? $this->estado;
     }
 
-    // ✅ MÉTODOS DE NEGOCIO
     public function tieneCapacidad()
     {
         return $this->estudiantes_inscritos < $this->capacidad_maxima;
@@ -174,7 +173,7 @@ class Grupo extends Model
 
     public function puedeSerActivo()
     {
-        return $this->profesor_id && $this->aula_id && $this->tieneCapacidad();
+        return $this->estudiantes_inscritos > 0;
     }
 
     public function puedeSerCancelado()

@@ -295,30 +295,19 @@
                         </div>
                     </div>
 
-                    <div class="form-options">
-                        <label class="checkbox-container">
-                            <input type="checkbox" id="recordar" name="remember">
-                            <span class="checkmark"></span>
-                            <span class="checkbox-label">Recordar mi sesión</span>
-                        </label>
-                        <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
-                    </div>
+                   
 
                     <button type="submit" class="submit-btn">
                         <span class="btn-text">Iniciar Sesión</span>
                         <i class="fas fa-arrow-right"></i>
                     </button>
 
-                    <div class="divider"><span>O</span></div>
-
+                  
                     <div class="form-footer">
                         <p>¿No tienes cuenta? <a href="/register">Regístrate aquí</a></p>
                     </div>
 
-                    <div class="additional-options">
-                        <a href="#" class="option-link"><i class="fas fa-user-shield"></i> Acceso para profesores</a>
-                        <a href="#" class="option-link"><i class="fas fa-user-tie"></i> Acceso para coordinadores</a>
-                    </div>
+                   
                 </form>
             </div>
         </div>

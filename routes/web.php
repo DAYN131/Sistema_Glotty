@@ -57,8 +57,6 @@ Route::middleware(['auth:coordinador'])->group(function () {
     Route::get('/coordinador', [AuthController::class, 'coordinadorDashboard'])
         ->name('coordinador.dashboard');
 
-    Route::get('/coordinador/panel-visual', [CoordinadorPanelVisualController::class, 'index'])
-        ->name('coordinador.panel-visual');
         
     // Gestión de Profesores - RUTAS COMPLETAS
     Route::prefix('coordinador/profesores')->group(function () {
@@ -100,7 +98,6 @@ Route::prefix('coordinador/periodos')->group(function () {
     Route::delete('/{periodo}', [PeriodoController::class, 'destroy'])
         ->name('coordinador.periodos.destroy');
 
-    // ✅ AÑADE ESTA RUTA FALTANTE
     Route::post('/{periodo}/agregar-horarios', [PeriodoController::class, 'agregarHorarios'])
         ->name('coordinador.periodos.agregar-horarios');
 
@@ -141,7 +138,7 @@ Route::prefix('coordinador/aulas')->group(function () {
     Route::post('/', [AulaController::class, 'store'])
         ->name('coordinador.aulas.store');
     
-    // ✅ CAMBIADO: {id_aula} por {aula} para Route Model Binding
+
     Route::get('/{aula}/editar', [AulaController::class, 'edit'])
         ->name('coordinador.aulas.edit');
     Route::put('/{aula}', [AulaController::class, 'update'])
@@ -149,12 +146,10 @@ Route::prefix('coordinador/aulas')->group(function () {
     Route::delete('/{aula}', [AulaController::class, 'destroy'])
         ->name('coordinador.aulas.destroy');
     
-    // ✅ Ruta para toggle disponible
     Route::post('/{aula}/toggle-disponible', [AulaController::class, 'toggleDisponible'])
         ->name('coordinador.aulas.toggle-disponible');
 });
-    // routes/web.php
-
+   
     Route::prefix('coordinador/horarios')->group(function () {
         Route::get('/', [HorarioController::class, 'index'])->name('coordinador.horarios.index');
         Route::get('/crear', [HorarioController::class, 'create'])->name('coordinador.horarios.create');
@@ -191,32 +186,28 @@ Route::prefix('coordinador/aulas')->group(function () {
         // PÁGINA PRINCIPAL - Análisis de demanda
         Route::get('/demanda', [CoordinadorPreregistroController::class, 'demanda'])->name('demanda');
         
-        // LISTA DETALLADA - Para gestión individual
+      
         Route::get('/', [CoordinadorPreregistroController::class, 'index'])->name('index');
         Route::get('/estado/{estado}', [CoordinadorPreregistroController::class, 'porEstado'])->name('porEstado');
         
-        // GESTIÓN INDIVIDUAL
+       
         Route::get('/{id}', [CoordinadorPreregistroController::class, 'show'])->name('show');
         Route::post('/{id}/asignar-grupo', [CoordinadorPreregistroController::class, 'asignarGrupo'])->name('asignarGrupo');
         Route::post('/{id}/cambiar-estado', [CoordinadorPreregistroController::class, 'cambiarEstado'])->name('cambiarEstado');
         Route::post('/{id}/cambiar-pago', [CoordinadorPreregistroController::class, 'cambiarEstadoPago'])->name('cambiarPago');
         
-        // CANCELACIÓN DIRECTA
+        
         Route::post('/{id}/cancelar', [CoordinadorPreregistroController::class, 'cancelarPreregistro'])
             ->name('cancelar');
         
-        // ✅ CORREGIDO - quita el prefijo duplicado
+     
         Route::delete('/{preregistro}/quitar-grupo', [CoordinadorPreregistroController::class, 'quitarGrupo'])
             ->name('quitar-grupo');
 
-        // AJAX - Estudiantes por nivel
         Route::get('/estudiantes-por-nivel/{nivel}', [CoordinadorPreregistroController::class, 'obtenerEstudiantesPorNivel'])
             ->name('estudiantesPorNivel');
     });
 
-// Eliminé la ruta de creación rápida de grupos ya que el cliente no la quiere
-
-    // Ruta para AJAX - Estudiantes por nivel
     Route::get('/coordinador/preregistros/estudiantes-por-nivel/{nivel}', 
         [CoordinadorPreregistroController::class, 'obtenerEstudiantesPorNivel'])
         ->name('coordinador.preregistros.estudiantesPorNivel');
@@ -226,3 +217,27 @@ Route::prefix('coordinador/aulas')->group(function () {
 
 // Logout
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+
+use App\Http\Controllers\DocumentoController;
+
+// Rutas para el módulo de documentos
+Route::prefix('coordinador/documentos')->name('coordinador.documentos.')->group(function () {
+    // Panel principal de documentos
+    Route::get('/', [DocumentoController::class, 'panel'])->name('panel');
+    
+    // Lista de grupo
+    Route::get('/grupo/lista', [DocumentoController::class, 'listaGrupo'])->name('grupo.lista');
+    Route::get('/grupo/{grupo}/lista-preview', [DocumentoController::class, 'listaGrupoPreview'])
+        ->name('grupo.lista.preview');
+    
+    // Constancia individual
+    Route::get('/constancia/{preregistro}', [DocumentoController::class, 'constanciaIndividual'])
+        ->name('constancia');
+    
+    // Estadísticas
+    Route::get('/estadisticas', [DocumentoController::class, 'reporteEstadisticas'])
+        ->name('estadisticas');
+    Route::get('/estadisticas/preview', [DocumentoController::class, 'reporteEstadisticasPreview'])
+        ->name('estadisticas.preview');
+});

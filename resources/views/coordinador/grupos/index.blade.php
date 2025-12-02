@@ -167,7 +167,7 @@
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="font-bold text-lg text-gray-900">{{ $grupo->nombre_completo }}</div>
-                            <div class="text-sm text-gray-500">{{ $grupo->nivel_formateado }}</div>
+                           
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">{{ $grupo->periodo->nombre_periodo }}</div>
@@ -188,14 +188,15 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             @if($grupo->profesor)
-                            <div class="text-sm text-gray-900">{{ $grupo->profesor->nombre_profesor }}</div>
+                            <div class="text-sm text-gray-900">{{ $grupo->profesor->nombre_profesor  }}</div>
+                              <div class="text-sm text-gray-900">{{ $grupo->profesor->apellidos_profesor  }}</div>
                             @else
                             <span class="text-yellow-600 text-sm">Por asignar</span>
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             @if($grupo->aula)
-                            <div class="text-sm text-gray-900">{{ $grupo->aula->nombre_completo ?? $grupo->aula->nombre }}</div>
+                            <div class="text-sm text-gray-900">{{ $grupo->aula->nombre?? $grupo->aula->nombre }}</div>
                             <div class="text-xs text-gray-500">Cap: {{ $grupo->aula->capacidad }}</div>
                             @else
                             <span class="text-yellow-600 text-sm">Por asignar</span>
@@ -220,11 +221,7 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2">
-                                <a href="{{ route('coordinador.grupos.show', $grupo->id) }}" 
-                                class="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded" 
-                                title="Ver detalles">
-                                    <i class="fas fa-eye"></i>
-                                </a>
+                                
 
                                 <a href="{{ route('coordinador.grupos.edit', $grupo->id) }}" 
                                 class="text-green-600 hover:text-green-900 transition-colors p-1 rounded" 

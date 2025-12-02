@@ -5,9 +5,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Coordinador - Glotty')</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
+    <!-- Bootstrap CSS para modales -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
     <script>
         tailwind.config = {
             theme: {
@@ -59,12 +66,25 @@
         .card-hover:hover {
             transform: translateY(-2px);
         }
+        
+        /* Override de Bootstrap para compatibilidad con Tailwind */
+        .modal-backdrop {
+            z-index: 1040 !important;
+        }
+        
+        .modal {
+            z-index: 1050 !important;
+        }
+        
+        .modal-content {
+            border: none !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+        }
     </style>
     @stack('styles')
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col font-sans antialiased text-text-primary">
 
-    
     <!-- Main Content sin sidebar -->
     <div class="flex-1 flex flex-col overflow-hidden">
         <!-- Top Header con colores suaves -->
@@ -119,6 +139,15 @@
         </div>
     </footer>
 
+    <!-- Bootstrap JS Bundle (necesario para modales) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- SweetAlert2 (si lo estás usando) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- jQuery (si Select2 lo requiere) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
     @stack('scripts')
 </body>
 </html>

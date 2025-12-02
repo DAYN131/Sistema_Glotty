@@ -177,11 +177,8 @@ class PeriodoController extends Controller
         }
     }
 
-
-
     public function agregarHorarios(Request $request, Periodo $periodo)
     {
-        
         if ($periodo->estaFinalizado() || $periodo->estaCancelado()) {
             return redirect()->back()
                 ->with('error', 'No se pueden agregar horarios en periodos finalizados o cancelados');
@@ -230,7 +227,6 @@ class PeriodoController extends Controller
 
     public function eliminarHorarioPeriodo(Periodo $periodo, HorarioPeriodo $horarioPeriodo)
     {
-        
         if ($periodo->estaFinalizado() || $periodo->estaCancelado()) {
             return redirect()->back()
                 ->with('error', 'No se pueden eliminar horarios en periodos finalizados o cancelados');
@@ -242,7 +238,7 @@ class PeriodoController extends Controller
                 ->with('error', 'El horario no pertenece a este periodo.');
         }
 
-        // ✅ VALIDACIÓN IMPORTANTE: No eliminar si hay grupos usando este horario
+        // VALIDACIÓN IMPORTANTE: No eliminar si hay grupos usando este horario
         if ($horarioPeriodo->grupos()->exists()) {
             return redirect()->back()
                 ->with('error', 'No se puede eliminar el horario porque tiene grupos asignados.');
@@ -268,10 +264,9 @@ class PeriodoController extends Controller
         }
     }
 
-
     public function toggleHorarioPeriodo(Periodo $periodo, HorarioPeriodo $horarioPeriodo)
     {
-        // ✅ FLEXIBLE: Permitir en cualquier estado EXCEPTO finalizado/cancelado
+        // Permitir en cualquier estado EXCEPTO finalizado/cancelado
         if ($periodo->estaFinalizado() || $periodo->estaCancelado()) {
             return redirect()->back()
                 ->with('error', 'No se pueden modificar horarios en periodos finalizados o cancelados');
@@ -306,89 +301,88 @@ class PeriodoController extends Controller
     }
 
     public function activarPreregistros(Periodo $periodo)
-{
-    // ✅ 1. Validar transición de estado
-    if (!$periodo->puedeCambiarA('preregistros_activos')) {
-        return redirect()->back()->with('error', 
-            "No se puede activar preregistros desde '{$periodo->estado_legible}'"
-        );
+    {
+        // Validar transición de estado
+        if (!$periodo->puedeCambiarA('preregistros_activos')) {
+            return redirect()->back()->with('error', 
+                "No se puede activar preregistros desde '{$periodo->estado_legible}'"
+            );
+        }
+
+        // 2. OBLIGATORIO: Verificar horarios activos en el período
+        if ($periodo->horariosPeriodo()->where('activo', true)->count() === 0) {
+            return redirect()->back()
+                ->with('error', 'No se pueden activar preregistros: Debe tener al menos un horario activo en el período.');
+        }
+
+        //  3. OBLIGATORIO: Verificar que existan aulas (con campo 'disponible')
+        if (!\App\Models\Aula::where('disponible', true)->exists()) {
+            return redirect()->back()
+                ->with('error', 'No se pueden activar preregistros: Debe crear aulas disponibles en el sistema.');
+        }
+
+        // 4. OBLIGATORIO: Verificar que existan profesores (aunque sea 1)
+        if (!\App\Models\Profesor::exists()) {
+            return redirect()->back()
+                ->with('error', 'No se pueden activar preregistros: Debe tener profesores registrados en el sistema.');
+        }
+
+        try {
+            $periodo->update(['estado' => 'preregistros_activos']);
+            
+            Log::info('Pre-registros activados', [
+                'periodo_id' => $periodo->id,
+                'estado_anterior' => $periodo->getOriginal('estado'),
+                'horarios_activos' => $periodo->horariosPeriodo()->where('activo', true)->count(),
+                'aulas_disponibles' => \App\Models\Aula::where('disponible', true)->count(),
+                'total_profesores' => \App\Models\Profesor::count()
+            ]);
+            
+            return redirect()->route('coordinador.periodos.index')
+                ->with('success', 'Pre-registros activados. Los estudiantes ya pueden registrarse.');
+
+        } catch (\Exception $e) {
+            Log::error('Error activando pre-registros: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al activar pre-registros.');
+        }
     }
 
-    // ✅ 2. OBLIGATORIO: Verificar horarios activos en el período
-    if ($periodo->horariosPeriodo()->where('activo', true)->count() === 0) {
-        return redirect()->back()
-            ->with('error', 'No se pueden activar preregistros: Debe tener al menos un horario activo en el período.');
+    public function cerrarPreregistros(Periodo $periodo)
+    {
+        // 1. Validar transición de estado
+        if (!$periodo->puedeCambiarA('preregistros_cerrados')) {
+            return redirect()->back()->with('error', 
+                "No se puede cerrar preregistros desde '{$periodo->estado_legible}'"
+            );
+        }
+
+        //  2. OPCIONAL: Verificar que haya preregistros (para evitar períodos vacíos)
+        if ($periodo->preregistros()->count() === 0) {
+            return redirect()->back()
+                ->with('warning', '¿Está seguro? El período no tiene preregistros. ¿Desea continuar?')
+                ->with('confirmar_cierre', true); // Para mostrar confirmación en la vista
+        }
+
+        try {
+            $periodo->update(['estado' => 'preregistros_cerrados']);
+            
+            Log::info('Pre-registros cerrados', [
+                'periodo_id' => $periodo->id,
+                'estado_anterior' => $periodo->getOriginal('estado'),
+                'total_preregistros' => $periodo->preregistros()->count()
+            ]);
+            
+            return redirect()->route('coordinador.periodos.index')
+                ->with('success', 'Pre-registros cerrados. Se procederá con la asignación de grupos.');
+
+        } catch (\Exception $e) {
+            Log::error('Error cerrando pre-registros: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al cerrar pre-registros.');
+        }
     }
-
-    // ✅ 3. OBLIGATORIO: Verificar que existan aulas (con campo 'disponible')
-    if (!\App\Models\Aula::where('disponible', true)->exists()) {
-        return redirect()->back()
-            ->with('error', 'No se pueden activar preregistros: Debe crear aulas disponibles en el sistema.');
-    }
-
-    // ✅ 4. OBLIGATORIO: Verificar que existan profesores (aunque sea 1)
-    if (!\App\Models\Profesor::exists()) {
-        return redirect()->back()
-            ->with('error', 'No se pueden activar preregistros: Debe tener profesores registrados en el sistema.');
-    }
-
-    try {
-        $periodo->update(['estado' => 'preregistros_activos']);
-        
-        Log::info('Pre-registros activados', [
-            'periodo_id' => $periodo->id,
-            'estado_anterior' => $periodo->getOriginal('estado'),
-            'horarios_activos' => $periodo->horariosPeriodo()->where('activo', true)->count(),
-            'aulas_disponibles' => \App\Models\Aula::where('disponible', true)->count(),
-            'total_profesores' => \App\Models\Profesor::count()
-        ]);
-        
-        return redirect()->route('coordinador.periodos.index')
-            ->with('success', 'Pre-registros activados. Los estudiantes ya pueden registrarse.');
-
-    } catch (\Exception $e) {
-        Log::error('Error activando pre-registros: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Error al activar pre-registros.');
-    }
-}
-
-public function cerrarPreregistros(Periodo $periodo)
-{
-    // ✅ 1. Validar transición de estado
-    if (!$periodo->puedeCambiarA('preregistros_cerrados')) {
-        return redirect()->back()->with('error', 
-            "No se puede cerrar preregistros desde '{$periodo->estado_legible}'"
-        );
-    }
-
-    // ✅ 2. OPCIONAL: Verificar que haya preregistros (para evitar períodos vacíos)
-    if ($periodo->preregistros()->count() === 0) {
-        return redirect()->back()
-            ->with('warning', '¿Está seguro? El período no tiene preregistros. ¿Desea continuar?')
-            ->with('confirmar_cierre', true); // Para mostrar confirmación en la vista
-    }
-
-    try {
-        $periodo->update(['estado' => 'preregistros_cerrados']);
-        
-        Log::info('Pre-registros cerrados', [
-            'periodo_id' => $periodo->id,
-            'estado_anterior' => $periodo->getOriginal('estado'),
-            'total_preregistros' => $periodo->preregistros()->count()
-        ]);
-        
-        return redirect()->route('coordinador.periodos.index')
-            ->with('success', 'Pre-registros cerrados. Se procederá con la asignación de grupos.');
-
-    } catch (\Exception $e) {
-        Log::error('Error cerrando pre-registros: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Error al cerrar pre-registros.');
-    }
-}
 
     public function iniciarPeriodo(Periodo $periodo)
     {
-        // ✅ USAR EL MÉTODO DEL MODELO
         if (!$periodo->puedeCambiarA('en_curso')) {
             return redirect()->back()->with('error', 
                 "No se puede iniciar periodo desde '{$periodo->estado_legible}'"
@@ -406,16 +400,11 @@ public function cerrarPreregistros(Periodo $periodo)
                     ->whereNotNull('grupo_asignado_id')
                     ->update(['estado' => 'cursando']);
                 
-                // ✅ OPCIONAL: Cambiar grupos a "en_curso" (igual que en cambiarEstado)
-                $gruposActualizados = $periodo->grupos()
-                    ->where('estado', 'activo')
-                    ->update(['estado' => 'en_curso']);
 
                 Log::info('Periodo iniciado con automatización', [
                     'periodo_id' => $periodo->id,
                     'estado_anterior' => $estadoAnterior,
-                    'preregistros_actualizados' => $preregistrosActualizados,
-                    'grupos_actualizados' => $gruposActualizados
+                    'preregistros_actualizados' => $preregistrosActualizados
                 ]);
             });
 
@@ -428,9 +417,8 @@ public function cerrarPreregistros(Periodo $periodo)
         }
     }
 
-    public function finalizarPeriodo(Periodo $periodo)
+   public function finalizarPeriodo(Periodo $periodo)
     {
-        // ✅ USAR EL MÉTODO DEL MODELO
         if (!$periodo->puedeCambiarA('finalizado')) {
             return redirect()->back()->with('error', 
                 "No se puede finalizar periodo desde '{$periodo->estado_legible}'"
@@ -444,7 +432,7 @@ public function cerrarPreregistros(Periodo $periodo)
                 
                 // Si se finaliza desde "En Curso", finalizar grupos y estudiantes
                 if ($estadoAnterior === 'en_curso') {
-                    $periodo->grupos()->where('estado', 'en_curso')->update(['estado' => 'finalizado']);
+                    $periodo->grupos()->where('estado', 'activo')->update(['estado' => 'finalizado']);
                     $periodo->preregistros()->where('estado', 'cursando')->update(['estado' => 'finalizado']);
                 }
             });
@@ -503,96 +491,92 @@ public function cerrarPreregistros(Periodo $periodo)
         }
     }
 
-public function cambiarEstado(Request $request, Periodo $periodo)
-{
-    $request->validate([
-        'nuevo_estado' => 'required|in:configuracion,preregistros_activos,preregistros_cerrados,en_curso,finalizado,cancelado'
-    ]);
-
-    $nuevoEstado = $request->nuevo_estado;
-
-    if (!$periodo->puedeCambiarA($nuevoEstado)) {
-        return redirect()->back()->with('error', 
-            "No se puede cambiar de '{$periodo->estado_legible}' a '" . 
-            ($periodo::ESTADOS[$nuevoEstado] ?? $nuevoEstado) . "'"
-        );
-    }
-
-    // ✅ VALIDACIONES ESPECÍFICAS PARA ACTIVAR PRE-REGISTROS
-    if ($nuevoEstado === 'preregistros_activos') {
-        // Verificar horarios activos
-        if ($periodo->horariosPeriodo()->where('activo', true)->count() === 0) {
-            return redirect()->back()
-                ->with('error', 'No se pueden activar preregistros: Debe tener al menos un horario activo en el período.');
-        }
-
-        // Verificar aulas disponibles
-        if (!\App\Models\Aula::where('disponible', true)->exists()) {
-            return redirect()->back()
-                ->with('error', 'No se pueden activar preregistros: Debe crear aulas disponibles en el sistema.');
-        }
-
-        // Verificar profesores
-        if (!\App\Models\Profesor::exists()) {
-            return redirect()->back()
-                ->with('error', 'No se pueden activar preregistros: Debe tener profesores registrados en el sistema.');
-        }
-    }
-
-    try {
-        DB::transaction(function () use ($periodo, $nuevoEstado) {
-            $estadoActual = $periodo->estado;
-            
-            // Lógica específica para transiciones importantes
-            switch ($nuevoEstado) {
-                case 'en_curso':
-                    // ✅ AGREGAR: Misma lógica que en iniciarPeriodo()
-                    $periodo->preregistros()
-                        ->where('estado', 'asignado')
-                        ->whereNotNull('grupo_asignado_id')
-                        ->update(['estado' => 'cursando']);
-                    
-                    $periodo->grupos()
-                        ->where('estado', 'activo')
-                        ->update(['estado' => 'en_curso']);
-                    break;
-                    
-                case 'finalizado':
-                    if ($estadoActual === 'en_curso') {
-                        $periodo->grupos()->where('estado', 'en_curso')->update(['estado' => 'finalizado']);
-                        $periodo->preregistros()->where('estado', 'cursando')->update(['estado' => 'finalizado']);
-                    }
-                    break;
-                    
-                case 'cancelado':
-                    $periodo->grupos()->update(['estado' => 'cancelado']);
-                    $periodo->preregistros()
-                        ->whereIn('estado', ['asignado', 'cursando'])
-                        ->update([
-                            'estado' => 'pendiente',
-                            'grupo_asignado_id' => null
-                        ]);
-                    break;
-            }
-
-            $periodo->update(['estado' => $nuevoEstado]);
-        });
-
-        Log::info("Estado cambiado", [
-            'periodo_id' => $periodo->id,
-            'estado_anterior' => $periodo->getOriginal('estado'),
-            'nuevo_estado' => $nuevoEstado
+    public function cambiarEstado(Request $request, Periodo $periodo)
+    {
+        $request->validate([
+            'nuevo_estado' => 'required|in:configuracion,preregistros_activos,preregistros_cerrados,en_curso,finalizado,cancelado'
         ]);
 
-        return redirect()->route('coordinador.periodos.index')
-            ->with('success', "Estado actualizado: " . $periodo->estado_legible);
+        $nuevoEstado = $request->nuevo_estado;
 
-    } catch (\Exception $e) {
-        Log::error('Error cambiando estado: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Error al cambiar estado: ' . $e->getMessage());
+        if (!$periodo->puedeCambiarA($nuevoEstado)) {
+            return redirect()->back()->with('error', 
+                "No se puede cambiar de '{$periodo->estado_legible}' a '" . 
+                ($periodo::ESTADOS[$nuevoEstado] ?? $nuevoEstado) . "'"
+            );
+        }
+
+        // ✅ VALIDACIONES ESPECÍFICAS PARA ACTIVAR PRE-REGISTROS
+        if ($nuevoEstado === 'preregistros_activos') {
+            // Verificar horarios activos
+            if ($periodo->horariosPeriodo()->where('activo', true)->count() === 0) {
+                return redirect()->back()
+                    ->with('error', 'No se pueden activar preregistros: Debe tener al menos un horario activo en el período.');
+            }
+
+            // Verificar aulas disponibles
+            if (!\App\Models\Aula::where('disponible', true)->exists()) {
+                return redirect()->back()
+                    ->with('error', 'No se pueden activar preregistros: Debe crear aulas disponibles en el sistema.');
+            }
+
+            // Verificar profesores
+            if (!\App\Models\Profesor::exists()) {
+                return redirect()->back()
+                    ->with('error', 'No se pueden activar preregistros: Debe tener profesores registrados en el sistema.');
+            }
+        }
+
+        try {
+            DB::transaction(function () use ($periodo, $nuevoEstado) {
+                $estadoActual = $periodo->estado;
+                
+                // Lógica específica para transiciones importantes
+                switch ($nuevoEstado) {
+                    case 'en_curso':
+                        // ✅ AGREGAR: Misma lógica que en iniciarPeriodo()
+                        $periodo->preregistros()
+                            ->where('estado', 'asignado')
+                            ->whereNotNull('grupo_asignado_id')
+                            ->update(['estado' => 'cursando']);
+                        break; // ✅ CORRECCIÓN: AÑADIR BREAK
+                        
+                    case 'finalizado':
+                        if ($estadoActual === 'en_curso') {
+                            // CORRECCIÓN: Los grupos no tienen estado 'en_curso', usar 'activo'
+                            $periodo->grupos()->where('estado', 'activo')->update(['estado' => 'cancelado']);
+                            $periodo->preregistros()->where('estado', 'cursando')->update(['estado' => 'finalizado']);
+                        }
+                        break;
+                        
+                    case 'cancelado':
+                        $periodo->grupos()->update(['estado' => 'cancelado']);
+                        $periodo->preregistros()
+                            ->whereIn('estado', ['asignado', 'cursando'])
+                            ->update([
+                                'estado' => 'pendiente',
+                                'grupo_asignado_id' => null
+                            ]);
+                        break;
+                }
+
+                $periodo->update(['estado' => $nuevoEstado]);
+            });
+
+            Log::info("Estado cambiado", [
+                'periodo_id' => $periodo->id,
+                'estado_anterior' => $periodo->getOriginal('estado'),
+                'nuevo_estado' => $nuevoEstado
+            ]);
+
+            return redirect()->route('coordinador.periodos.index')
+                ->with('success', "Estado actualizado: " . $periodo->estado_legible);
+
+        } catch (\Exception $e) {
+            Log::error('Error cambiando estado: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error al cambiar estado: ' . $e->getMessage());
+        }
     }
-}
-
 
     /**
      * 🔧 MÉTODOS PRIVADOS

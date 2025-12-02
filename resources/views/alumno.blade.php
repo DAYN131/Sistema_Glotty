@@ -117,49 +117,17 @@
         </div>
     </a>
 
-    <!-- Tarjeta Calificaciones -->
-    <a href="#" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
-        <div class="flex items-center mb-5">
-            <div class="p-3 bg-sky-100 rounded-lg mr-4 group-hover:bg-sky-200 transition-smooth">
-                <i class="fas fa-chart-line text-sky-600 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-800">Calificaciones</h3>
-        </div>
-        <p class="text-text-secondary mb-5">Consulta tus calificaciones y progreso académico en los cursos.</p>
-        <div class="text-sky-600 font-medium group-hover:text-sky-700 transition-smooth flex items-center">
-            Consultar
-            <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
-        </div>
-    </a>
-
-
-    
-    <!-- Tarjeta Mi Grupo -->
-    <a href="#" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
-        <div class="flex items-center mb-5">
-            <div class="p-3 bg-violet-100 rounded-lg mr-4 group-hover:bg-violet-200 transition-smooth">
-                <i class="fas fa-users text-violet-600 text-xl"></i>
-            </div>
-            <h3 class="text-lg font-semibold text-gray-800">Mi Grupo</h3>
-        </div>
-        <p class="text-text-secondary mb-5">Información sobre tu grupo asignado, profesor y compañeros.</p>
-        <div class="text-violet-600 font-medium group-hover:text-violet-700 transition-smooth flex items-center">
-            Ver grupo
-            <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
-        </div>
-    </a>
-    
-    <!-- Tarjeta Constancias -->
+    <!-- Tarjeta Mi Información (CORREGIDA) -->
     <a href="#" class="bg-slate-50 p-6 rounded-2xl shadow-card hover:shadow-card-hover transition-smooth border border-slate-200 card-hover group">
         <div class="flex items-center mb-5">
             <div class="p-3 bg-amber-100 rounded-lg mr-4 group-hover:bg-amber-200 transition-smooth">
-                <i class="fas fa-file-certificate text-amber-600 text-xl"></i>
+                <i class="fas fa-user-circle text-amber-600 text-xl"></i>
             </div>
-            <h3 class="text-lg font-semibold text-gray-800">Constancias</h3>
+            <h3 class="text-lg font-semibold text-gray-800">Mi Información</h3>
         </div>
-        <p class="text-text-secondary mb-5">Descarga constancias de estudios y certificados de cursos.</p>
+        <p class="text-text-secondary mb-5">Consulta y actualiza tus datos personales y de contacto.</p>
         <div class="text-amber-600 font-medium group-hover:text-amber-700 transition-smooth flex items-center">
-            Descargar
+            Ver perfil
             <i class="fas fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
         </div>
     </a>
