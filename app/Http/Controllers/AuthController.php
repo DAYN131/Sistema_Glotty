@@ -97,7 +97,7 @@ class AuthController extends Controller
     }
 
     /**
-     * REGISTRO (solo para alumnos) - ESTE ESTÁ BIEN
+     * REGISTRO (solo para alumnos)
      */
     public function register(Request $request)
     {
@@ -182,7 +182,6 @@ class AuthController extends Controller
         ]);
     }
 
-    // ✅ AGREGAR ESTE MÉTODO QUE FALTA
     public function showRegisterForm()
     {
         return view('register');

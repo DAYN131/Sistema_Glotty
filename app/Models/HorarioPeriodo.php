@@ -15,11 +15,11 @@ class HorarioPeriodo extends Model
     protected $fillable = [
         'periodo_id',
         'horario_base_id', 
-        'nombre',           // ✅ COPIA del nombre
-        'tipo',             // ✅ COPIA del tipo
-        'dias',             // ✅ COPIA de días
-        'hora_inicio',      // ✅ COPIA de hora inicio
-        'hora_fin',         // ✅ COPIA de hora fin
+        'nombre',           //  COPIA del nombre
+        'tipo',             //  COPIA del tipo
+        'dias',             //  COPIA de días
+        'hora_inicio',      //  COPIA de hora inicio
+        'hora_fin',         //  COPIA de hora fin
         'activo'
     ];
 
@@ -46,7 +46,7 @@ class HorarioPeriodo extends Model
         return $this->hasMany(Grupo::class, 'horario_periodo_id');
     }
 
-    // 🎯 MÉTODOS DE LA INSTANTÁNEA
+    //  MÉTODOS DE LA INSTANTÁNEA
     public function getDiasFormateadosAttribute()
     {
         if (!$this->dias) return '';

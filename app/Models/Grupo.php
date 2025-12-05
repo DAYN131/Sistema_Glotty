@@ -50,7 +50,7 @@ class Grupo extends Model
     // LETRAS DISPONIBLES
     const LETRAS_GRUPO = ['A', 'B', 'C', 'D', 'E', 'F'];
 
-    // 🔗 RELACIONES
+
     public function periodo() 
     { 
         return $this->belongsTo(Periodo::class); 
@@ -81,7 +81,7 @@ class Grupo extends Model
         return $this->preregistros()->whereIn('estado', ['asignado', 'cursando']); 
     }
 
-    // 🎯 SCOPES
+
     public function scopeActivos($query) 
     { 
         return $query->where('estado', 'activo'); 
@@ -122,7 +122,7 @@ class Grupo extends Model
             ->whereNotIn('estado', ['cancelado']);
     }
 
-    // ✅ ACCESORES
+    //  ACCESORES
     public function getNombreCompletoAttribute()
     {
         return "{$this->nivel_ingles}-{$this->letra_grupo}";
@@ -306,17 +306,22 @@ class Grupo extends Model
     /**
      * Validar asignación de profesor
      */
-    public function validarAsignacionProfesor($profesorId)
+    public function validarAsignacionProfesor($profesorId, $horarioPeriodoId = null, $periodoId = null)
     {
         $profesor = Profesor::find($profesorId);
         if (!$profesor) {
             throw new \Exception('El profesor seleccionado no existe.');
         }
 
-        // Verificar conflictos de horario (usando grupos existentes)
+        // Usar parámetros o propiedades del objeto
+        $horarioId = $horarioPeriodoId ?? $this->horario_periodo_id;
+        $periodoId = $periodoId ?? $this->periodo_id;
+
+        // Verificar conflictos de horario
         $conflictos = self::where('profesor_id', $profesorId)
-            ->where('horario_periodo_id', $this->horario_periodo_id)
-            ->where('id', '!=', $this->id)
+            ->where('horario_periodo_id', $horarioId)
+            ->where('periodo_id', $periodoId)
+            ->where('id', '!=', $this->id ?? 0)
             ->whereNotIn('estado', ['cancelado'])
             ->exists();
 
@@ -371,4 +376,17 @@ class Grupo extends Model
             }
         });
     }
+
+    public function getEstadoColorAttribute()
+    {
+        return match($this->estado) {
+            'planificado' => 'warning',      // amarillo
+            'con_profesor' => 'info',        // azul claro
+            'con_aula' => 'primary',         // azul
+            'activo' => 'success',           // verde
+            'cancelado' => 'danger',         // rojo
+            default => 'secondary'           // gris
+        };
+    }
+    
 }

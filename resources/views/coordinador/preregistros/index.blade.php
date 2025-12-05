@@ -169,11 +169,11 @@
                                         {{ $preregistro->usuario->nombre_completo ?? 'No disponible' }}
                                     </div>
                                     <div class="text-sm text-slate-500">
-                                        {{ $preregistro->usuario->numero_control ?? 'N/A' }}
+                                        {{ $preregistro->usuario->numero_control ?? 'EXTERNO' }}
                                     </div>
                                     @if($preregistro->semestre_carrera)
                                     <div class="text-xs text-slate-400 mt-1">
-                                        {{ $preregistro->semestre_carrera }}
+                                        {{ $preregistro->semestre_carrera  ?? 'EXTERNO' }}
                                     </div>
                                     @endif
                                 </div>
@@ -238,7 +238,8 @@
                                 $pagoColors = [
                                     'pendiente' => 'bg-yellow-100 text-yellow-800',
                                     'pagado' => 'bg-green-100 text-green-800',
-                                    'rechazado' => 'bg-red-100 text-red-800'
+                                    'rechazado' => 'bg-red-100 text-red-800',
+                                    'prorroga'  => 'bg-orange-200 text-orange-900'
                                 ];
                                 $colorPago = $pagoColors[$preregistro->pago_estado] ?? 'bg-gray-100 text-gray-800';
                             @endphp
@@ -262,12 +263,9 @@
 
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center space-x-2">
-                                <a href="{{ route('coordinador.preregistros.show', $preregistro->id) }}" 
-                                   class="text-blue-600 hover:text-blue-900" title="Ver detalles">
-                                    <i class="fas fa-eye"></i>
-                                </a>
+                                
 
-                                @if($preregistro->pago_estado === 'pagado')
+                                @if($preregistro->pago_estado === 'pagado'  or $preregistro->pago_estado === 'prorroga'  )
                                     @if($preregistro->estado === 'pendiente' || $preregistro->estado === 'asignado')
                                     <button onclick="mostrarModalAsignar({{ $preregistro->id }})" 
                                             class="text-green-600 hover:text-green-900" 

@@ -114,9 +114,7 @@
                                 <option value="{{ $profesor->id_profesor }}" 
                                     {{ old('profesor_id', $grupo->profesor_id) == $profesor->id_profesor ? 'selected' : '' }}>
                                     {{ $profesor->nombre_profesor}}
-                                    @if($profesor->especialidad)
-                                        - {{ $profesor->especialidad }}
-                                    @endif
+                                    {{ $profesor->apellidos_profesor}}
                                 </option>
                             @endforeach
                         </select>
@@ -192,7 +190,7 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('✅ Formulario de edición cargado correctamente');
+    console.log(' Formulario de edición cargado correctamente');
 });
 </script>
 @endsection

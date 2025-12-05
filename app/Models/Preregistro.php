@@ -70,7 +70,6 @@ class Preregistro extends Model
         return $this->belongsTo(Grupo::class, 'grupo_asignado_id');
     }
 
-    // Scopes útiles - ACTUALIZADOS
     public function scopePendientes($query)
     {
         return $query->where('estado', 'pendiente');
@@ -84,7 +83,7 @@ class Preregistro extends Model
     public function scopePuedenAsignarse($query)
     {
         return $query->where('estado', 'pendiente')
-                    ->whereIn('pago_estado', ['pagado', 'prorroga']); // ✅ INCLUYE PRÓRROGA
+                    ->whereIn('pago_estado', ['pagado', 'prorroga']);
     }
 
     public function scopeActivos($query)
@@ -118,14 +117,17 @@ class Preregistro extends Model
     /**
      * Puede ser asignado a grupo si:
      * - Está pendiente
-     * - Pago está 'pagado' O 'prorroga' ✅
-     * - El periodo acepta preregistros
+     * - Pago está 'pagado' O 'prorroga' 
+     * - El periodo acepta preregistros, el periodo esta en curso o cerro preregistros
      */
     public function puedeSerAsignado()
     {
+        // Estados del periodo que permiten asignación
+        $periodosPermitidos = ['preregistros_activos', 'preregistros_cerrados', 'en_curso'];
+        
         return $this->estado === 'pendiente' && 
-               in_array($this->pago_estado, ['pagado', 'prorroga']) && // ✅ ACTUALIZADO
-               $this->periodo->aceptaPreRegistros();
+            in_array($this->pago_estado, ['pagado', 'prorroga']) && 
+            in_array($this->periodo->estado, $periodosPermitidos);
     }
 
     /**
@@ -134,7 +136,7 @@ class Preregistro extends Model
     public function estaListoParaCursar()
     {
         return $this->estado === 'asignado' && 
-               in_array($this->pago_estado, ['pagado', 'prorroga']); // ✅ ACTUALIZADO
+               in_array($this->pago_estado, ['pagado', 'prorroga']); 
     }
 
     /**

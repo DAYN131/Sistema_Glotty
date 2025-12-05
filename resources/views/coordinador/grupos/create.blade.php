@@ -173,6 +173,7 @@
                             </select>
                         </div>
 
+
                         <!-- Profesor -->
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-2">
@@ -182,8 +183,9 @@
                                     class="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
                                 <option value="">Sin profesor asignado</option>
                                 @foreach($profesores as $profesor)
-                                    <option value="{{ $profesor->id }}" {{ old('profesor_id') == $profesor->id ? 'selected' : '' }}>
-                                        {{ $profesor->nombre_profesor ?? 'Profesor ' . $profesor->id }}
+                                    <option value="{{ $profesor->id_profesor }}" {{ old('profesor_id') == $profesor->id_profesor ? 'selected' : '' }}>
+                                        {{ $profesor->nombre_profesor ?? 'Profesor ' . $profesor->id_profesor }} 
+                                        {{ $profesor->apellidos_profesor ?? '' }}
                                         @if($profesor->especialidad)
                                             - {{ $profesor->especialidad }}
                                         @endif
@@ -200,15 +202,11 @@
                             <select name="aula_id" 
                                     class="w-full border border-slate-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-smooth">
                                 <option value="">Sin aula asignada</option>
-                                @foreach($aulas as $aula)
-                                    <option value="{{ $aula->id }}" {{ old('aula_id') == $aula->id ? 'selected' : '' }}>
-                                        {{ $aula->id_aula ?? 'Aula ' . $aula->id }} 
-                                        @if($aula->edificio)
-                                            - {{ $aula->edificio }}
-                                        @endif
-                                        (Capacidad: {{ $aula->capacidad ?? 'N/A' }})
-                                    </option>
-                                @endforeach
+                              @foreach($aulas as $aula)
+                                <option value="{{ $aula->id }}" {{ old('aula_id') == $aula->id ? 'selected' : '' }}>
+                                    Edificio {{ $aula->edificio ?? 'N/A' }} -  Aula {{ $aula->nombre ?? 'Aula ' . $aula->id }}  
+                                </option>
+                            @endforeach
                             </select>
                         </div>
 

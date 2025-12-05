@@ -109,7 +109,7 @@ class CoordinadorGrupoController extends Controller
     /**
      * Almacena un nuevo grupo
      */
-    public function store(Request $request)
+   public function store(Request $request)
     {
         $request->validate([
             'nivel_ingles' => 'required|integer|between:1,5',
@@ -138,16 +138,19 @@ class CoordinadorGrupoController extends Controller
             return DB::transaction(function () use ($request) {
                 // Crear instancia para validaciones
                 $grupo = new Grupo();
-                $grupo->fill($request->all());
                 
                 // Validar aula si está asignada
                 if ($request->aula_id) {
                     $grupo->validarAsignacionAula($request->aula_id);
                 }
 
-                // Validar profesor si está asignado
+                // Validar profesor si está asignado - PASAR PARÁMETROS
                 if ($request->profesor_id) {
-                    $grupo->validarAsignacionProfesor($request->profesor_id);
+                    $grupo->validarAsignacionProfesor(
+                        $request->profesor_id, 
+                        $request->horario_periodo_id, 
+                        $request->periodo_id
+                    );
                 }
 
                 // Determinar estado automáticamente
@@ -380,7 +383,7 @@ public function update(Request $request, $id)
         try {
             $grupo->removerEstudiante($request->preregistro_id);
             
-            // ✅ NUEVO: Si ya no tiene estudiantes, cambiar a 'planificado'
+            //  NUEVO: Si ya no tiene estudiantes, cambiar a 'planificado'
             if ($grupo->estudiantes_inscritos == 0 && $grupo->estado == 'activo') {
                 // Determinar estado basado en si tiene profesor/aula
                 $estado = 'planificado';

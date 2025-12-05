@@ -22,7 +22,7 @@ class Periodo extends Model
         'fecha_fin' => 'date',
     ];
 
-    // ✅ CONSTANTE DE ESTADOS FORMAL
+    //  CONSTANTE DE ESTADOS FORMAL
     const ESTADOS = [
         'configuracion' => 'En Configuración',
         'preregistros_activos' => 'Preregistros Abiertos',
@@ -32,20 +32,20 @@ class Periodo extends Model
         'cancelado' => 'Cancelado'
     ];
 
-    // 🔥 RELACIONES (se mantienen igual)
+    // RELACIONES 
     public function horariosPeriodo() { return $this->hasMany(HorarioPeriodo::class); }
     public function horariosBase() { return $this->belongsToMany(Horario::class, 'horarios_periodo', 'periodo_id', 'horario_base_id')->withPivot('activo')->withTimestamps(); }
     public function grupos() { return $this->hasMany(Grupo::class); }
     public function preregistros() { return $this->hasMany(Preregistro::class); }
 
-    // 🎯 SCOPES ÚTILES (actualizados)
+    //  SCOPES ÚTILES 
     public function scopeActivo($query) { return $query->where('estado', 'en_curso'); }
     public function scopeConPreRegistrosActivos($query) { return $query->where('estado', 'preregistros_activos'); }
     public function scopeConPreRegistrosCerrados($query) { return $query->where('estado', 'preregistros_cerrados'); }
     public function scopeFinalizados($query) { return $query->where('estado', 'finalizado'); }
     public function scopeCancelados($query) { return $query->where('estado', 'cancelado'); }
 
-    // ✅ MÉTODOS DE ESTADO (actualizados)
+    //  MÉTODOS DE ESTADO 
     public function estaEnConfiguracion() { return $this->estado === 'configuracion'; }
     public function preregistrosAbiertos() { return $this->estado === 'preregistros_activos'; }
     public function preregistrosCerrados() { return $this->estado === 'preregistros_cerrados'; }
@@ -58,6 +58,9 @@ class Periodo extends Model
         return $this->fecha_inicio->diffInDays($this->fecha_fin);
     }
 
+    // Solo se puede eliminar el peirodo si esta el grupo en config
+    // los grupos son 0
+    // los preregistros son 0
     public function puedeEliminarse()
     {
         return $this->estaEnConfiguracion() && 
@@ -65,7 +68,7 @@ class Periodo extends Model
             $this->preregistros()->count() === 0;
     }
 
-    // ✅ MÉTODO ACTUALIZADO: Flexibilidad práctica pero con sentido
+    //  Flexibilidad práctica pero con sentido
     public function puedeCambiarA($nuevoEstado)
     {
         // Estados finales: no se puede cambiar desde ellos
@@ -73,41 +76,46 @@ class Periodo extends Model
             return false;
         }
 
-        // Estados que no pueden ser destino desde cualquier estado
+        // Permitir finalizar/cancelar desde cualquier estado activo
         if (in_array($nuevoEstado, ['finalizado', 'cancelado'])) {
-            return true; // Permitir finalizar/cancelar desde cualquier estado activo
+            return true;
         }
 
-        // Transiciones principales permitidas (con flexibilidad)
+        // Transiciones más lógicas y controladas
         $transicionesPermitidas = [
-            'configuracion' => ['preregistros_activos', 'preregistros_cerrados', 'en_curso'],
-            'preregistros_activos' => ['configuracion', 'preregistros_cerrados', 'en_curso'],
-            'preregistros_cerrados' => ['preregistros_activos', 'en_curso', 'configuracion'],
-            'en_curso' => ['preregistros_cerrados', 'preregistros_activos', 'configuracion'],
+            'configuracion' => ['preregistros_activos'],
+            'preregistros_activos' => ['preregistros_cerrados', 'cancelado'],
+            'preregistros_cerrados' => ['en_curso', 'cancelado'],
+            'en_curso' => ['finalizado', 'cancelado'],
         ];
+
+        // Permitir retroceder solo a estados anteriores (opcional)
+        $transicionesPermitidas['preregistros_cerrados'][] = 'preregistros_activos';
+        $transicionesPermitidas['en_curso'][] = 'preregistros_cerrados';
+       
 
         return in_array($nuevoEstado, $transicionesPermitidas[$this->estado] ?? []);
     }
 
-    // ✅ NUEVO: Obtener nombre legible del estado
+    //  Obtener nombre legible del estado
     public function getEstadoLegibleAttribute()
     {
         return self::ESTADOS[$this->estado] ?? $this->estado;
     }
 
-    // ✅ NUEVO: Verificar si acepta preregistros (para lógica de estudiantes)
+    //  Verificar si acepta preregistros 
     public function aceptaPreRegistros()
     {
         return $this->preregistrosAbiertos();
     }
 
-    // ✅ NUEVO: Estados que permiten gestión de horarios
+    // Estados que permiten gestión de horarios
     public function permiteGestionHorarios()
     {
         return !$this->estaFinalizado() && !$this->estaCancelado();
     }
 
-    // ✅ NUEVO: Estados que permiten preregistros de estudiantes
+    // Estados que permiten preregistros de estudiantes
     public function permitePreRegistrosEstudiantes()
     {
         return $this->preregistrosAbiertos();

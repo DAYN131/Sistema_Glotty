@@ -12,7 +12,7 @@ class CoordinadorPreregistroController extends Controller
 {
     /**
      * Muestra el análisis de demanda 
-     */
+     */ 
     public function demanda(Request $request)
     {
         // Obtener periodo activo para preregistros
@@ -247,7 +247,9 @@ class CoordinadorPreregistroController extends Controller
         $preregistros = $query->paginate(20);
 
         $periodos = Periodo::all();
-        $gruposDisponibles = Grupo::with(['horario', 'aula', 'profesor'])->get();
+        $gruposDisponibles = Grupo::with(['horario',
+        
+        ])->get();
 
         return view('coordinador.preregistros.index', compact(
             'preregistros', 
@@ -283,7 +285,7 @@ class CoordinadorPreregistroController extends Controller
         try {
             $preregistro = Preregistro::findOrFail($id);
             
-            // ✅ MODIFICACIÓN: Permitir asignación en más estados (no solo pendiente)
+            // Permitir asignación en más estados 
             // Solo verificar si puede ser asignado si está pendiente
             if ($preregistro->estado === 'pendiente' && !$preregistro->puedeSerAsignado()) {
                 return back()->with('error', 
@@ -293,7 +295,7 @@ class CoordinadorPreregistroController extends Controller
                 );
             }
 
-            // ✅ MODIFICACIÓN: Verificar estados que NO permiten reasignación
+            //  Verificar estados que NO permiten reasignación
             $estadosQueNoPermitenAsignacion = ['finalizado', 'cancelado'];
             if (in_array($preregistro->estado, $estadosQueNoPermitenAsignacion)) {
                 return back()->with('error', 
@@ -318,8 +320,7 @@ class CoordinadorPreregistroController extends Controller
                 $grupoAnterior = Grupo::find($preregistro->grupo_asignado_id);
             }
 
-            // ✅ NUEVA LÓGICA: Manejar contadores correctamente
-            // 1. Decrementar contador del grupo anterior (si existe y es diferente al nuevo)
+            // Manejar contadores correctamente
             if ($grupoAnterior && $grupoAnterior->id != $request->grupo_id && $grupoAnterior->estudiantes_inscritos > 0) {
                 $grupoAnterior->decrement('estudiantes_inscritos');
             }
@@ -369,7 +370,7 @@ class CoordinadorPreregistroController extends Controller
     }
 
     /**
-     * Cambia el estado de pago de un preregistro - ACTUALIZADO CON PRÓRROGA
+     * Cambia el estado de pago de un preregistro 
      */
     public function cambiarEstadoPago(Request $request, $id)
     {
@@ -399,7 +400,7 @@ class CoordinadorPreregistroController extends Controller
     }
 
     /**
-     * Cambia el estado de un preregistro - MODIFICADO: más flexible
+     * Cambia el estado de un preregistro
      */
     public function cambiarEstado(Request $request, $id)
     {
@@ -410,7 +411,7 @@ class CoordinadorPreregistroController extends Controller
         try {
             $preregistro = Preregistro::findOrFail($id);
             
-            // ✅ MODIFICACIÓN: Validaciones más flexibles
+            // Validaciones más flexibles
             $estadoActual = $preregistro->estado;
             $nuevoEstado = $request->estado;
 
@@ -443,14 +444,6 @@ class CoordinadorPreregistroController extends Controller
                 'grupo_asignado_id' => $preregistro->grupo_asignado_id
             ]);
 
-            \Log::info("Estado de preregistro cambiado", [
-                'preregistro_id' => $preregistro->id,
-                'estudiante' => $preregistro->usuario->nombre_completo ?? 'No disponible',
-                'estado_anterior' => $estadoActual,
-                'estado_nuevo' => $nuevoEstado,
-                'tiene_grupo' => $preregistro->grupo_asignado_id ? 'Sí' : 'No',
-                'accion_por' => auth()->user()->name ?? 'Sistema'
-            ]);
 
             return back()->with('success', 'Estado actualizado exitosamente.');
 
@@ -495,14 +488,6 @@ class CoordinadorPreregistroController extends Controller
             if ($grupoAsignado) {
                 $mensaje .= ' Se liberó la asignación del grupo.';
             }
-
-            \Log::info("Preregistro cancelado", [
-                'preregistro_id' => $preregistro->id,
-                'estudiante' => $preregistro->usuario->nombre_completo ?? 'No disponible',
-                'tenia_grupo' => $grupoAsignado ? 'Sí' : 'No',
-                'grupo_id' => $grupoAsignado,
-                'accion_por' => auth()->user()->name ?? 'Sistema'
-            ]);
 
             return back()->with('success', $mensaje);
 
@@ -567,19 +552,19 @@ class CoordinadorPreregistroController extends Controller
     }
 
     /**
-     * Quita el grupo de un preregistro - MODIFICADO: más flexible
+     * Quita el grupo de un preregistro
      */
     public function quitarGrupo(Request $request, $id)
     {
         try {
             $preregistro = Preregistro::with('grupoAsignado')->findOrFail($id);
             
-            // ✅ MODIFICACIÓN: Permitir quitar grupo en más estados
+            // Permitir quitar grupo en más estados
             if (!$preregistro->grupo_asignado_id) {
                 return back()->with('error', 'Este preregistro no tiene grupo asignado.');
             }
 
-            // ✅ MODIFICACIÓN: Estados que permiten quitar grupo
+            // Estados que permiten quitar grupo
             $estadosQuePermitenQuitarGrupo = ['asignado', 'cursando', 'pendiente'];
             if (!in_array($preregistro->estado, $estadosQuePermitenQuitarGrupo)) {
                 return back()->with('error', 
@@ -606,18 +591,6 @@ class CoordinadorPreregistroController extends Controller
                 $grupoAnterior->decrement('estudiantes_inscritos');
             }
 
-            // Log de la acción
-            \Log::info("Grupo quitado del preregistro", [
-                'preregistro_id' => $preregistro->id,
-                'estudiante' => $preregistro->usuario->nombre_completo ?? 'No disponible',
-                'estado_anterior' => $estadoAnterior,
-                'estado_nuevo' => $nuevoEstado,
-                'grupo_anterior_id' => $grupoId,
-                'grupo_anterior_nombre' => $grupoAnterior->nombre_completo ?? 'No disponible',
-                'nivel' => $preregistro->nivel_solicitado,
-                'periodo' => $preregistro->periodo->nombre_periodo ?? 'N/A',
-                'accion_por' => auth()->user()->name ?? 'Sistema'
-            ]);
 
             return back()->with('success', 
                 "Grupo quitado correctamente. El preregistro ahora está en estado '{$nuevoEstado}'."
@@ -648,7 +621,7 @@ class CoordinadorPreregistroController extends Controller
             'grupoAsignado.aula'
         ])->findOrFail($id);
 
-        // ✅ MODIFICACIÓN: Mostrar grupos disponibles incluso si ya está asignado
+        // Mostrar grupos disponibles incluso si ya está asignado
         $gruposDisponibles = Grupo::with(['horario', 'aula', 'profesor'])
             ->where('nivel_ingles', $preregistro->nivel_solicitado)
             ->where('periodo_id', $preregistro->periodo_id)

@@ -72,19 +72,7 @@
                 </div>
             </div>
         </div>
-        <div class="bg-white p-4 rounded-xl shadow-card">
-            <div class="flex items-center">
-                <div class="p-2 bg-purple-100 rounded-lg text-purple-600 mr-3">
-                    <i class="fas fa-chart-pie"></i>
-                </div>
-                <div>
-                    <p class="text-sm text-gray-500">Ocupación</p>
-                    <p class="text-xl font-bold text-purple-700">
-                        {{ $estadisticas['capacidad_utilizada'] }}/{{ $estadisticas['capacidad_total'] }}
-                    </p>
-                </div>
-            </div>
-        </div>
+       
     </div>
 
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
@@ -222,7 +210,13 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex space-x-2">
                                 
-
+                                <!-- NUEVO: Botón de Ver (ojito) -->
+                                <a href="{{ route('coordinador.grupos.show', $grupo->id) }}" 
+                                class="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded" 
+                                title="Ver detalles del grupo">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
                                 <a href="{{ route('coordinador.grupos.edit', $grupo->id) }}" 
                                 class="text-green-600 hover:text-green-900 transition-colors p-1 rounded" 
                                 title="Editar grupo">

@@ -46,7 +46,7 @@ class PeriodoController extends Controller
     {
         $request->validate([
             'nombre_periodo' => 'required|string|max:50|unique:periodos,nombre_periodo',
-            'fecha_inicio' => 'required|date|after:today',
+            'fecha_inicio' => 'required|date',
             'fecha_fin' => 'required|date|after:fecha_inicio',
         ]);
 
@@ -79,7 +79,7 @@ class PeriodoController extends Controller
                 ->withInput();
         }
     }
-
+    // Esta es clave para poder poner horarios
     public function show(Periodo $periodo)
     {
         $horariosPeriodo = $periodo->horariosPeriodo()
@@ -90,7 +90,7 @@ class PeriodoController extends Controller
         
         $estadisticas = $this->obtenerEstadisticasDetalladas($periodo->id);
         
-        // ✅ NUEVO: Horarios base disponibles para agregar
+        // Horarios base disponibles para agregar
         $horariosBaseDisponibles = Horario::where('activo', true)
             ->whereNotIn('id', function($query) use ($periodo) {
                 $query->select('horario_base_id')
@@ -107,6 +107,7 @@ class PeriodoController extends Controller
         ));
     }
 
+    // Funcion para mandarlo a la vista de Editar
     public function edit(Periodo $periodo)
     {
         if (!$periodo->estaEnConfiguracion()) {
@@ -117,6 +118,7 @@ class PeriodoController extends Controller
         return view('coordinador.periodos.edit', compact('periodo'));
     }
 
+    // Actualizar 
     public function update(Request $request, Periodo $periodo)
     {
         if (!$periodo->estaEnConfiguracion()) {
@@ -150,8 +152,10 @@ class PeriodoController extends Controller
         }
     }
 
+    // Eliminar Periodo
     public function destroy(Periodo $periodo)
     {
+        // Solo si esta en configuracion puede eliminarse
         if (!$periodo->estaEnConfiguracion()) {
             return redirect()->route('coordinador.periodos.index')
                 ->with('warning', 'Solo se pueden eliminar periodos en estado "Configuración"');
@@ -238,7 +242,7 @@ class PeriodoController extends Controller
                 ->with('error', 'El horario no pertenece a este periodo.');
         }
 
-        // VALIDACIÓN IMPORTANTE: No eliminar si hay grupos usando este horario
+        // No eliminar si hay grupos usando este horario
         if ($horarioPeriodo->grupos()->exists()) {
             return redirect()->back()
                 ->with('error', 'No se puede eliminar el horario porque tiene grupos asignados.');
@@ -309,19 +313,19 @@ class PeriodoController extends Controller
             );
         }
 
-        // 2. OBLIGATORIO: Verificar horarios activos en el período
+        //  Verificar horarios activos en el período
         if ($periodo->horariosPeriodo()->where('activo', true)->count() === 0) {
             return redirect()->back()
                 ->with('error', 'No se pueden activar preregistros: Debe tener al menos un horario activo en el período.');
         }
 
-        //  3. OBLIGATORIO: Verificar que existan aulas (con campo 'disponible')
+        //   Verificar que existan aulas (con campo 'disponible')
         if (!\App\Models\Aula::where('disponible', true)->exists()) {
             return redirect()->back()
                 ->with('error', 'No se pueden activar preregistros: Debe crear aulas disponibles en el sistema.');
         }
 
-        // 4. OBLIGATORIO: Verificar que existan profesores (aunque sea 1)
+        // Verificar que existan profesores (aunque sea 1)
         if (!\App\Models\Profesor::exists()) {
             return redirect()->back()
                 ->with('error', 'No se pueden activar preregistros: Debe tener profesores registrados en el sistema.');
@@ -394,7 +398,7 @@ class PeriodoController extends Controller
                 $estadoAnterior = $periodo->estado;
                 $periodo->update(['estado' => 'en_curso']);
                 
-                // ✅ AUTOMATIZACIÓN: Cambiar preregistros "asignados" a "cursando"
+                // AUTOMATIZACIÓN: Cambiar preregistros "asignados" a "cursando"
                 $preregistrosActualizados = $periodo->preregistros()
                     ->where('estado', 'asignado')
                     ->whereNotNull('grupo_asignado_id')
@@ -416,6 +420,7 @@ class PeriodoController extends Controller
             return redirect()->back()->with('error', 'Error al iniciar periodo.');
         }
     }
+
 
    public function finalizarPeriodo(Periodo $periodo)
     {
@@ -453,7 +458,7 @@ class PeriodoController extends Controller
 
     public function cancelarPeriodo(Periodo $periodo)
     {
-        // ✅ USAR EL MÉTODO DEL MODELO
+        //  USAR EL MÉTODO DEL MODELO
         if (!$periodo->puedeCambiarA('cancelado')) {
             return redirect()->back()->with('error', 
                 "No se puede cancelar periodo desde '{$periodo->estado_legible}'"
@@ -506,7 +511,7 @@ class PeriodoController extends Controller
             );
         }
 
-        // ✅ VALIDACIONES ESPECÍFICAS PARA ACTIVAR PRE-REGISTROS
+        // VALIDACIONES ESPECÍFICAS PARA ACTIVAR PRE-REGISTROS
         if ($nuevoEstado === 'preregistros_activos') {
             // Verificar horarios activos
             if ($periodo->horariosPeriodo()->where('activo', true)->count() === 0) {
@@ -534,16 +539,14 @@ class PeriodoController extends Controller
                 // Lógica específica para transiciones importantes
                 switch ($nuevoEstado) {
                     case 'en_curso':
-                        // ✅ AGREGAR: Misma lógica que en iniciarPeriodo()
                         $periodo->preregistros()
                             ->where('estado', 'asignado')
                             ->whereNotNull('grupo_asignado_id')
                             ->update(['estado' => 'cursando']);
-                        break; // ✅ CORRECCIÓN: AÑADIR BREAK
+                        break; 
                         
                     case 'finalizado':
                         if ($estadoActual === 'en_curso') {
-                            // CORRECCIÓN: Los grupos no tienen estado 'en_curso', usar 'activo'
                             $periodo->grupos()->where('estado', 'activo')->update(['estado' => 'cancelado']);
                             $periodo->preregistros()->where('estado', 'cursando')->update(['estado' => 'finalizado']);
                         }
@@ -579,8 +582,9 @@ class PeriodoController extends Controller
     }
 
     /**
-     * 🔧 MÉTODOS PRIVADOS
+     * MÉTODOS PRIVADOS
      */
+    
     private function generarNombreHorarioPeriodo(Horario $horario, Periodo $periodo)
     {
         $base = str_replace('Plantilla', '', $horario->nombre);
