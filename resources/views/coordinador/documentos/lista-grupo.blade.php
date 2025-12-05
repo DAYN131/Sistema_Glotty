@@ -26,7 +26,7 @@
     <div class="info">
         <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
             <div>
-                <strong>Profesor:</strong> {{ $profesor->nombre_profesor ?? 'No asignado' }}<br>
+                <strong>Profesor:</strong> {{ $profesor->nombre_profesor ?? 'No asignado' }} {{ $profesor->apellidos_profesor ?? 'No asignado' }}<br>
                 <strong>Horario:</strong> {{ $horario->nombre ?? 'No asignado' }}
             </div>
             <div>

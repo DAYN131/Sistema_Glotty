@@ -41,7 +41,7 @@
         /* Estadísticas */
         .stats-grid { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            grid-template-columns: repeat(3, 1fr); 
             gap: 15px; 
             margin: 25px 0; 
         }
@@ -94,13 +94,13 @@
             background-color: #f8f9fa; 
         }
         
-        /* Gráficos (representación simple) */
-        .chart-container { 
-            margin: 25px 0; 
+        /* Secciones */
+        .section { 
+            margin: 30px 0; 
             page-break-inside: avoid; 
         }
         
-        .chart-title { 
+        .section-title { 
             font-size: 16px; 
             font-weight: bold; 
             color: #2c3e50; 
@@ -109,19 +109,34 @@
             border-bottom: 2px solid #eee; 
         }
         
-        .chart-bar { 
-            background: #3498db; 
-            color: white; 
-            padding: 8px; 
-            margin: 5px 0; 
-            border-radius: 3px; 
-            position: relative; 
+        /* Gráficos de barra mejorados */
+        .chart-item { 
+            margin: 12px 0; 
         }
         
         .chart-label { 
             display: flex; 
             justify-content: space-between; 
-            margin-bottom: 5px; 
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        
+        .chart-bar { 
+            background: #3498db; 
+            color: white; 
+            padding: 8px 12px; 
+            border-radius: 3px; 
+            position: relative; 
+            min-width: 60px;
+            display: inline-block;
+        }
+        
+        .chart-bar-container {
+            background: #f0f0f0;
+            border-radius: 3px;
+            overflow: hidden;
+            height: 35px;
+            position: relative;
         }
         
         /* Footer */
@@ -134,19 +149,13 @@
             color: #888; 
         }
         
-        /* Columnas para distribución */
-        .two-columns { 
-            column-count: 2; 
-            column-gap: 30px; 
-            margin: 20px 0; 
-        }
-        
         /* Estado badges */
         .badge { 
             padding: 4px 8px; 
             border-radius: 3px; 
             font-size: 11px; 
-            font-weight: bold; 
+            font-weight: bold;
+            display: inline-block;
         }
         
         .badge-pendiente { background: #fef3c7; color: #92400e; }
@@ -158,7 +167,8 @@
         /* Responsive para PDF */
         @media print {
             .no-print { display: none; }
-            body { margin: 0; }
+            body { margin: 15px; }
+            .section { page-break-inside: avoid; }
         }
     </style>
 </head>
@@ -207,23 +217,22 @@
         @endif
     </div>
 
-    <!-- Distribución en 2 columnas -->
-    <div class="two-columns">
-        <!-- Distribución por Estado -->
-        <div class="chart-container">
-            <div class="chart-title">Distribución por Estado</div>
+    <!-- Sección: Distribución por Estado -->
+    <div class="section">
+        <div class="section-title">1. Distribución por Estado</div>
+        
+        @if($porEstado && $porEstado->count() > 0)
+            @php
+                $total = $porEstado->sum();
+                $maxValue = $porEstado->max();
+            @endphp
             
-            @if($porEstado && $porEstado->count() > 0)
-                @php
-                    $total = $porEstado->sum();
-                    $maxValue = $porEstado->max();
-                @endphp
-                
-                @foreach($porEstado as $estado => $cantidad)
-                @php
-                    $percentage = $total > 0 ? ($cantidad / $total) * 100 : 0;
-                    $barWidth = $maxValue > 0 ? ($cantidad / $maxValue) * 100 : 0;
-                @endphp
+            @foreach($porEstado as $estado => $cantidad)
+            @php
+                $percentage = $total > 0 ? ($cantidad / $total) * 100 : 0;
+                $barWidth = $maxValue > 0 ? ($cantidad / $maxValue) * 100 : 0;
+            @endphp
+            <div class="chart-item">
                 <div class="chart-label">
                     <span>
                         @switch($estado)
@@ -246,58 +255,68 @@
                                 {{ ucfirst($estado) }}
                         @endswitch
                     </span>
-                    <span><strong>{{ $cantidad }}</strong> ({{ number_format($percentage, 1) }}%)</span>
+                    <span><strong>{{ $cantidad }}</strong> estudiantes ({{ number_format($percentage, 1) }}%)</span>
                 </div>
-                <div class="chart-bar" style="width: {{ $barWidth }}%; min-width: 5%;">
-                    {{ $cantidad }}
+                <div class="chart-bar-container">
+                    <div class="chart-bar" style="width: {{ $barWidth }}%; min-width: 60px;">
+                        {{ $cantidad }}
+                    </div>
                 </div>
-                @endforeach
-            @else
-                <p style="color: #888; font-style: italic;">No hay datos disponibles por estado</p>
-            @endif
-        </div>
-
-        <!-- Distribución por Nivel -->
-        <div class="chart-container">
-            <div class="chart-title">Distribución por Nivel Solicitado</div>
-            
-            @if($porNivel && $porNivel->count() > 0)
-                @php
-                    $totalNivel = $porNivel->sum('total');
-                    $maxNivel = $porNivel->max('total');
-                @endphp
-                
-                @foreach($porNivel as $item)
-                @php
-                    $percentage = $totalNivel > 0 ? ($item->total / $totalNivel) * 100 : 0;
-                    $barWidth = $maxNivel > 0 ? ($item->total / $maxNivel) * 100 : 0;
-                @endphp
-                <div class="chart-label">
-                    <span>Nivel {{ $item->nivel_solicitado }}</span>
-                    <span><strong>{{ $item->total }}</strong> ({{ number_format($percentage, 1) }}%)</span>
-                </div>
-                <div class="chart-bar" style="width: {{ $barWidth }}%; min-width: 5%; background-color: #2ecc71;">
-                    {{ $item->total }}
-                </div>
-                @endforeach
-            @else
-                <p style="color: #888; font-style: italic;">No hay datos disponibles por nivel</p>
-            @endif
-        </div>
+            </div>
+            @endforeach
+        @else
+            <p style="color: #888; font-style: italic; padding: 15px; background: #f9f9f9; border-radius: 5px;">
+                No hay datos disponibles por estado
+            </p>
+        @endif
     </div>
 
-    <!-- Tabla de distribución por Horario -->
-    <div class="chart-container">
-        <div class="chart-title">Distribución por Horario Preferido</div>
+    <!-- Sección: Distribución por Nivel -->
+    <div class="section">
+        <div class="section-title">2. Distribución por Nivel Solicitado</div>
+        
+        @if($porNivel && $porNivel->count() > 0)
+            @php
+                $totalNivel = $porNivel->sum('total');
+                $maxNivel = $porNivel->max('total');
+            @endphp
+            
+            @foreach($porNivel as $item)
+            @php
+                $percentage = $totalNivel > 0 ? ($item->total / $totalNivel) * 100 : 0;
+                $barWidth = $maxNivel > 0 ? ($item->total / $maxNivel) * 100 : 0;
+            @endphp
+            <div class="chart-item">
+                <div class="chart-label">
+                    <span><strong>Nivel {{ $item->nivel_solicitado }}</strong></span>
+                    <span><strong>{{ $item->total }}</strong> estudiantes ({{ number_format($percentage, 1) }}%)</span>
+                </div>
+                <div class="chart-bar-container">
+                    <div class="chart-bar" style="width: {{ $barWidth }}%; background-color: #2ecc71; min-width: 60px;">
+                        {{ $item->total }}
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        @else
+            <p style="color: #888; font-style: italic; padding: 15px; background: #f9f9f9; border-radius: 5px;">
+                No hay datos disponibles por nivel
+            </p>
+        @endif
+    </div>
+
+    <!-- Sección: Distribución por Horario -->
+    <div class="section">
+        <div class="section-title">3. Distribución por Horario Preferido</div>
         
         @if($porHorario && $porHorario->count() > 0)
         <table>
             <thead>
                 <tr>
                     <th>Horario</th>
-                    <th>Cantidad de Estudiantes</th>
-                    <th>Porcentaje</th>
-                    <th>Representación</th>
+                    <th style="text-align: center;">Cantidad</th>
+                    <th style="text-align: center;">Porcentaje</th>
+                    <th style="width: 35%;">Representación Visual</th>
                 </tr>
             </thead>
             <tbody>
@@ -310,44 +329,48 @@
                     $percentage = $totalHorario > 0 ? ($item['total'] / $totalHorario) * 100 : 0;
                 @endphp
                 <tr>
-                    <td>{{ $item['horario'] }}</td>
-                    <td><strong>{{ $item['total'] }}</strong></td>
-                    <td>{{ number_format($percentage, 1) }}%</td>
+                    <td><strong>{{ $item['horario'] }}</strong></td>
+                    <td style="text-align: center;"><strong>{{ $item['total'] }}</strong></td>
+                    <td style="text-align: center;">{{ number_format($percentage, 1) }}%</td>
                     <td>
-                        <div style="background: #ddd; height: 10px; width: 100%; border-radius: 5px;">
-                            <div style="background: #9b59b6; height: 100%; width: {{ $percentage }}%; border-radius: 5px;"></div>
+                        <div style="background: #e9ecef; height: 25px; width: 100%; border-radius: 4px; overflow: hidden;">
+                            <div style="background: #9b59b6; height: 100%; width: {{ $percentage }}%; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: bold;">
+                                @if($percentage > 15)
+                                    {{ number_format($percentage, 0) }}%
+                                @endif
+                            </div>
                         </div>
                     </td>
                 </tr>
                 @endforeach
             </tbody>
             <tfoot>
-                <tr style="background-color: #f8f9fa;">
+                <tr style="background-color: #2c3e50; color: white;">
                     <td><strong>TOTAL</strong></td>
-                    <td><strong>{{ $totalHorario }}</strong></td>
-                    <td><strong>100%</strong></td>
+                    <td style="text-align: center;"><strong>{{ $totalHorario }}</strong></td>
+                    <td style="text-align: center;"><strong>100%</strong></td>
                     <td></td>
                 </tr>
             </tfoot>
         </table>
         @else
-        <p style="color: #888; font-style: italic; padding: 20px; text-align: center;">
+        <p style="color: #888; font-style: italic; padding: 15px; background: #f9f9f9; border-radius: 5px;">
             No hay datos disponibles para distribución por horario
         </p>
         @endif
     </div>
 
-    <!-- Tabla detallada de estados -->
-    <div class="chart-container">
-        <div class="chart-title">Resumen Detallado</div>
+    <!-- Sección: Resumen Detallado -->
+    <div class="section">
+        <div class="section-title">4. Resumen Detallado por Estado</div>
         
         <table>
             <thead>
                 <tr>
                     <th>Estado</th>
                     <th>Descripción</th>
-                    <th>Cantidad</th>
-                    <th>Porcentaje</th>
+                    <th style="text-align: center;">Cantidad</th>
+                    <th style="text-align: center;">Porcentaje</th>
                 </tr>
             </thead>
             <tbody>
@@ -379,18 +402,23 @@
                         </td>
                         <td>
                             @switch($estado)
-                                @case('pendiente') Pendiente de asignación a grupo @break
-                                @case('asignado') Asignado a grupo pero sin iniciar @break
-                                @case('cursando') Actualmente cursando @break
-                                @case('finalizado') Ha finalizado el curso @break
-                                @case('cancelado') Preregistro cancelado @break
+                                @case('pendiente') Estudiantes pendientes de asignación a grupo @break
+                                @case('asignado') Estudiantes asignados a grupo pero sin iniciar clases @break
+                                @case('cursando') Estudiantes actualmente cursando @break
+                                @case('finalizado') Estudiantes que han finalizado el curso @break
+                                @case('cancelado') Preregistros cancelados @break
                                 @default {{ $estado }}
                             @endswitch
                         </td>
-                        <td><strong>{{ $cantidad }}</strong></td>
-                        <td>{{ number_format($percentage, 1) }}%</td>
+                        <td style="text-align: center;"><strong>{{ $cantidad }}</strong></td>
+                        <td style="text-align: center;"><strong>{{ number_format($percentage, 1) }}%</strong></td>
                     </tr>
                     @endforeach
+                    <tr style="background-color: #2c3e50; color: white; font-weight: bold;">
+                        <td colspan="2" style="text-align: right;">TOTAL GENERAL:</td>
+                        <td style="text-align: center;">{{ $total }}</td>
+                        <td style="text-align: center;">100%</td>
+                    </tr>
                 @else
                 <tr>
                     <td colspan="4" style="text-align: center; color: #888; font-style: italic; padding: 20px;">
@@ -400,6 +428,19 @@
                 @endif
             </tbody>
         </table>
+    </div>
+
+    <!-- Notas finales -->
+    <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px; border-left: 4px solid #3498db;">
+        <div style="font-weight: bold; margin-bottom: 10px; color: #2c3e50;">
+            📋 Notas Importantes:
+        </div>
+        <ul style="margin: 0; padding-left: 20px; color: #666; font-size: 11px; line-height: 1.6;">
+            <li>Los datos presentados corresponden únicamente al período actual seleccionado</li>
+            <li>Las estadísticas se actualizan en tiempo real al momento de generar el reporte</li>
+            <li>Para análisis históricos, consulte los reportes archivados de períodos anteriores</li>
+            <li>Este documento es confidencial y de uso exclusivo para fines académicos internos</li>
+        </ul>
     </div>
 
     <!-- Pie de página -->
@@ -417,44 +458,6 @@
         </div>
         <div style="margin-top: 10px; color: #aaa;">
             Este documento es confidencial y para uso interno exclusivo.
-        </div>
-    </div>
-
-    <!-- Notas finales -->
-    <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 5px; font-size: 11px; color: #666;">
-        <div style="display: flex; align-items: center; margin-bottom: 10px;">
-            <div style="width: 15px; height: 15px; background: #3498db; margin-right: 8px; border-radius: 3px;"></div>
-            <strong>Leyenda de colores:</strong>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-            <div>
-                <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                    <div style="width: 12px; height: 12px; background: #fef3c7; margin-right: 5px; border-radius: 2px;"></div>
-                    <span>Pendiente: Esperando asignación</span>
-                </div>
-                <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                    <div style="width: 12px; height: 12px; background: #dbeafe; margin-right: 5px; border-radius: 2px;"></div>
-                    <span>Asignado: Grupo asignado</span>
-                </div>
-                <div style="display: flex; align-items: center;">
-                    <div style="width: 12px; height: 12px; background: #d1fae5; margin-right: 5px; border-radius: 2px;"></div>
-                    <span>Cursando: En desarrollo</span>
-                </div>
-            </div>
-            <div>
-                <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                    <div style="width: 12px; height: 12px; background: #e5e7eb; margin-right: 5px; border-radius: 2px;"></div>
-                    <span>Finalizado: Curso completado</span>
-                </div>
-                <div style="display: flex; align-items: center; margin-bottom: 3px;">
-                    <div style="width: 12px; height: 12px; background: #fee2e2; margin-right: 5px; border-radius: 2px;"></div>
-                    <span>Cancelado: No completado</span>
-                </div>
-                <div style="display: flex; align-items: center;">
-                    <div style="width: 12px; height: 12px; background: #3498db; margin-right: 5px; border-radius: 2px;"></div>
-                    <span>Gráficos de distribución</span>
-                </div>
-            </div>
         </div>
     </div>
 </body>

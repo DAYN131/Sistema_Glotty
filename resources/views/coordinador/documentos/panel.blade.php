@@ -75,53 +75,51 @@
                 </div>
             </div>
         </div>
-
-        <!-- Documento 2: Constancia Individual -->
-        <div class="bg-white rounded-xl shadow-lg border-2 border-green-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
-            <!-- Header -->
-            <div class="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-4 rounded-t-xl">
-                <h5 class="text-lg font-bold flex items-center">
-                    <i class="fas fa-user-graduate mr-2"></i>
-                    Constancia Individual
-                </h5>
+<!-- Documento 2: Constancia Individual -->
+<div class="bg-white rounded-xl shadow-lg border-2 border-green-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-4 rounded-t-xl">
+        <h5 class="text-lg font-bold flex items-center">
+            <i class="fas fa-user-graduate mr-2"></i>
+            Constancia Individual
+        </h5>
+    </div>
+    
+    <!-- Body -->
+    <div class="p-6 flex-grow">
+        <p class="text-gray-600 mb-4">
+            Genera una constancia de inscripción para un estudiante específico.
+        </p>
+        
+        <form action="{{ route('coordinador.documentos.constancia', ':id') }}" method="GET" id="form-constancia">
+            <div class="mb-4">
+                <label for="estudiante_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Seleccionar Estudiante:
+                </label>
+                <select name="preregistro_id" id="estudiante_id" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
+                        required
+                        onchange="actualizarFormularioConstancia(this.value)">
+                    <option value="">-- Seleccione un estudiante --</option>
+                    @foreach($estudiantes as $estudiante)
+                        <option value="{{ $estudiante->id }}">
+                            {{ $estudiante->display_text }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
-            
-            <!-- Body -->
-            <div class="p-6 flex-grow">
-                <p class="text-gray-600 mb-4">
-                    Genera una constancia de inscripción para un estudiante específico.
-                </p>
-                
-                <form action="{{ route('coordinador.documentos.constancia', ':id') }}" method="GET" id="form-constancia">
-                    <div class="mb-4">
-                        <label for="estudiante_id" class="block text-sm font-semibold text-gray-700 mb-2">
-                            Seleccionar Estudiante:
-                        </label>
-                        <select name="preregistro_id" id="estudiante_id" 
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors" 
-                                required
-                                onchange="actualizarFormularioConstancia(this.value)">
-                            <option value="">-- Seleccione un estudiante --</option>
-                            @foreach($estudiantes as $estudiante)
-                                <option value="{{ $estudiante->id }}">
-                                    {{ $estudiante->usuario->name }} - 
-                                    {{ $estudiante->nivel_solicitado }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Footer -->
-            <div class="px-6 py-4 bg-gray-50 rounded-b-xl border-t border-gray-200">
-                <button type="button" onclick="generarConstancia()" 
-                        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
-                    <i class="fas fa-download mr-2"></i>
-                    Generar PDF
-                </button>
-            </div>
-        </div>
+        </form>
+    </div>
+    
+    <!-- Footer -->
+    <div class="px-6 py-4 bg-gray-50 rounded-b-xl border-t border-gray-200">
+        <button type="button" onclick="generarConstancia()" 
+                class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
+            <i class="fas fa-download mr-2"></i>
+            Generar PDF
+        </button>
+    </div>
+</div>
 
         <!-- Documento 3: Estadísticas -->
         <div class="bg-white rounded-xl shadow-lg border-2 border-cyan-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col">

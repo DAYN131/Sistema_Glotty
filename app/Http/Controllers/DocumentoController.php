@@ -16,7 +16,7 @@ class DocumentoController extends Controller
      */
     public function panel()
     {
-        // Obtener grupos con conteo de estudiantes - ORDENADO CORRECTAMENTE
+        // Obtener grupos con conteo de estudiantes
         $grupos = Grupo::withCount('preregistros')
             ->with(['horario'])
             ->orderBy('nivel_ingles', 'asc')
@@ -25,9 +25,16 @@ class DocumentoController extends Controller
 
         // Obtener estudiantes para constancias
         $estudiantes = Preregistro::with('usuario')
-            ->where('estado', 'aprobado')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(function($preregistro) {
+                // Crear un campo para mostrar en el select
+                $preregistro->display_text = 
+                    ($preregistro->usuario->nombre_completo ?? 'Sin nombre') . ' - ' . 
+                    ($preregistro->usuario->numero_control ?? 'EXTERNO');
+                
+                return $preregistro;
+            });
 
         return view('coordinador.documentos.panel', [
             'grupos' => $grupos,
@@ -79,22 +86,39 @@ class DocumentoController extends Controller
      */
     public function constanciaIndividual($preregistroId)
     {
-        $preregistro = Preregistro::with(['usuario', 'grupo.horario'])
-            ->findOrFail($preregistroId);
+        // Cargar el preregistro con las relaciones CORRECTAS
+        $preregistro = Preregistro::with([
+            'usuario',
+            'grupoAsignado.horario', // Cambiado de 'grupo' a 'grupoAsignado'
+            'periodo'
+        ])->findOrFail($preregistroId);
+
+        // Meses en español para la fecha
+        $meses = [
+            1 => 'enero', 2 => 'febrero', 3 => 'marzo', 4 => 'abril',
+            5 => 'mayo', 6 => 'junio', 7 => 'julio', 8 => 'agosto',
+            9 => 'septiembre', 10 => 'octubre', 11 => 'noviembre', 12 => 'diciembre'
+        ];
 
         $data = [
             'estudiante' => $preregistro,
             'usuario' => $preregistro->usuario,
-            'grupo' => $preregistro->grupo,
+            'grupo' => $preregistro->grupoAsignado, // Cambiado aquí
+            'periodo' => $preregistro->periodo,
             'fechaGeneracion' => now()->format('d/m/Y'),
-            'codigoConstancia' => 'CONST-' . strtoupper(Str::random(8))
+            'codigoConstancia' => 'CONST-' . strtoupper(Str::random(8)),
+            'meses' => $meses,
+            'nivel_actual' => $preregistro->nivel_solicitado
         ];
 
         $pdf = Pdf::loadView('coordinador.documentos.constancia-individual', $data)
-                  ->setPaper('a4', 'portrait')
-                  ->setOption('defaultFont', 'Arial');
+                ->setPaper('letter', 'portrait')
+                ->setOption('defaultFont', 'Times New Roman');
 
-        $nombreArchivo = 'constancia-' . Str::slug($preregistro->usuario->name) . '.pdf';
+        $nombreArchivo = 'constancia-' . 
+                        Str::slug($preregistro->usuario->name ?? 'estudiante') . '-' . 
+                        now()->format('Ymd') . '.pdf';
+        
         return $pdf->download($nombreArchivo);
     }
 
@@ -119,17 +143,16 @@ class DocumentoController extends Controller
     /**
      * Vista previa del reporte de estadísticas
      */
-    public function reporteEstadisticasPreview()
+   public function reporteEstadisticasPreview()
     {
-        // CORRECCIÓN AQUÍ: Usar 'en_curso' en lugar de 'activo'
         $periodoActivo = Periodo::where('estado', 'en_curso')->first();
-        
         $data = $this->generarEstadisticas($periodoActivo);
         
         $pdf = Pdf::loadView('coordinador.documentos.reporte-estadisticas', $data)
-                  ->setPaper('a4', 'landscape');
+                ->setPaper('a4', 'portrait'); // Cambiado a vertical
 
         return $pdf->stream('reporte-estadisticas-preview.pdf');
+    
     }
 
     /**
