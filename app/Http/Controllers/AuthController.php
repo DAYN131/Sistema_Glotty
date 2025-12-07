@@ -31,7 +31,7 @@ class AuthController extends Controller
             return $this->redirectByGuard('coordinador');
         }
 
-        // ✅ CORREGIDO: Intentar autenticar como PROFESOR (verificación manual)
+        // Intentar autenticar como PROFESOR (verificación manual)
         $profesor = Profesor::where('correo_profesor', $email)->first();
         if ($profesor && Hash::check($password, $profesor->contraseña)) {
             Auth::guard('profesor')->login($profesor);

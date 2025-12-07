@@ -296,6 +296,17 @@
                                     </button>
                                 </form>
                                 @endif
+
+                                @if($preregistro->puedeSerReactivado())
+                                <form action="{{ route('coordinador.preregistros.reactivar', $preregistro->id) }}" 
+                                    method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de reactivar este preregistro?')">
+                                    @csrf
+                                    <button type="submit" class="text-green-600 hover:text-green-900" title="Reactivar preregistro">
+                                        <i class="fas fa-redo-alt"></i>
+                                    </button>
+                                </form>
+                                @endif
+                                
                             </div>
                         </td>
                     </tr>

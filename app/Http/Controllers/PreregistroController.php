@@ -129,4 +129,37 @@ class PreregistroController extends Controller
 
         return view('alumno.preregistro.show', compact('preregistro'));
     }
+
+    public function reactivar(Preregistro $preregistro)
+    {
+        try {
+            // Solo si está cancelado
+            if (!$preregistro->estaCancelado()) {
+                return redirect()->back()
+                    ->with('error', 'Solo se pueden reactivar preregistros cancelados');
+            }
+            
+            // Verificar que el periodo aún esté activo
+            if ($preregistro->periodo->estaFinalizado()) {
+                return redirect()->back()
+                    ->with('error', 'No se puede reactivar porque el periodo ya finalizó');
+            }
+            
+            // Determinar el nuevo estado
+            $nuevoEstado = $preregistro->grupoAsignado ? 'asignado' : 'pendiente';
+            
+            // Reactivar
+            $preregistro->update(['estado' => $nuevoEstado]);
+            
+      
+            
+            return redirect()->back()
+                ->with('success', "Preregistro reactivado exitosamente. Estado: {$nuevoEstado}");
+                
+        } catch (\Exception $e) {
+            Log::error('Error al reactivar preregistro: ' . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Error al reactivar el preregistro');
+        }
+    }
 }

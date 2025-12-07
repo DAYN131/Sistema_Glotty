@@ -147,7 +147,8 @@ class Preregistro extends Model
     public function puedeSerCancelado()
     {
         return in_array($this->estado, ['pendiente', 'asignado']) &&
-               !$this->periodo->estaFinalizado();
+            !$this->periodo->estaFinalizado() &&
+            !in_array($this->pago_estado, ['pagado', 'prorroga']);
     }
 
     /**
@@ -234,5 +235,12 @@ class Preregistro extends Model
             'rechazado' => 'red',
             default => 'gray'
         };
+    }
+
+    public function puedeSerReactivado()
+    {
+        return $this->estaCancelado() &&
+            !$this->periodo->estaFinalizado() &&
+            in_array($this->pago_estado, ['pagado', 'prorroga']);
     }
 }
