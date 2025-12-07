@@ -12,6 +12,7 @@ use App\Http\Controllers\CoordinadorPreregistroController;
 use App\Http\Controllers\CoordinadorGrupoController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\DocumentoController;
+use App\Http\Controllers\AlumnoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -55,6 +56,8 @@ Route::middleware(['auth:web'])->group(function () {
         Route::get('/{id}', [PreregistroController::class, 'show'])->name('show');
         Route::post('/{id}/cancelar', [PreregistroController::class, 'cancel'])->name('cancel');
     });
+
+     Route::get('/mi-perfil', [AlumnoController::class, 'miPerfil'])->name('alumno.perfil');
 });
 
 /*
